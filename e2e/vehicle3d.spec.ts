@@ -44,3 +44,17 @@ test('キャブ内の場所を選ぶと車体が透けて中が見え、外の�
   await page.getByRole('button', { name: '車両右側前部シャッター' }).click();
   await expect(page.getByTestId('viewer')).not.toHaveAttribute('data-xray', 'true');
 });
+
+test('キャブ内の場所も、車体の上からタップして選べる', async ({ page }) => {
+  await page.goto('./#/vehicle/tank1');
+  const viewer = page.getByTestId('viewer');
+  await expect(viewer).toHaveAttribute('data-ready', 'true');
+  await page.waitForTimeout(300);
+  const p = await page.evaluate(() =>
+    (window as unknown as { __shikizai3d: { project(id: string): { x: number; y: number } | undefined } }).__shikizai3d.project('tank1-l31'));
+  expect(p).toBeTruthy();
+  await page.mouse.click(p!.x, p!.y);
+  await expect(viewer).toHaveAttribute('data-xray', 'true');
+  await expect(viewer).toHaveAttribute('data-highlight', /^tank1-l/);
+  await expect(page.getByTestId('sheet')).toBeVisible();
+});

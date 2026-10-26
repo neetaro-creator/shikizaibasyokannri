@@ -139,12 +139,29 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
       if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) return;
       const r = canvas.getBoundingClientRect();
       const ndc = new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
-      const id = hotspots!.pick(ndc, s.camera, vehicleObject ? [vehicleObject] : []);
+      const isCab = (id: string) => locs.find((l) => l.id === id)?.group === 'キャビン';
+      const occluders = vehicleObject ? [vehicleObject] : [];
+      let id = hotspots!.pick(ndc, s.camera, occluders, isCab);
+      if (!id && vehicleObject) {
+        // キャブの車体の、箱の無いところを押したら、押した点に一番近いキャブ内の場所を選ぶ
+        const ray = new THREE.Raycaster();
+        ray.setFromCamera(ndc, s.camera);
+        const hit = ray.intersectObject(vehicleObject, true)[0];
+        if (hit) id = hotspots!.nearest(hit.point, 1.2, isCab);
+      }
       if (id) select(id);
     });
 
     // E2E 用:画面に見えている場所箱の中心座標(手前のものだけ)
     (window as unknown as Record<string, unknown>).__shikizai3d = {
+      project: (id: string) => {
+        const c = hotspots!.centerOf(id);
+        if (!c) return undefined;
+        s.camera.updateMatrixWorld();
+        const p = c.project(s.camera);
+        const r = canvas.getBoundingClientRect();
+        return { x: r.left + ((p.x + 1) / 2) * r.width, y: r.top + ((1 - p.y) / 2) * r.height };
+      },
       visible: () => {
         const r = canvas.getBoundingClientRect();
         s.camera.updateMatrixWorld();

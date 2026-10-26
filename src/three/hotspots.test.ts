@@ -90,4 +90,22 @@ describe('createHotspots', () => {
     expect(inner.pick(new THREE.Vector2(0, 0), camera)).toBe('in');
     expect(inner.pick(new THREE.Vector2(0, 0), camera, [wall])).toBeUndefined();
   });
+
+  it('see-through ids (cab interior) are picked even behind the vehicle body', () => {
+    const inner = createHotspots([loc('in', 'キャビン', { x: 0, y: 1.5, z: 0, w: 1, h: 1, d: 1 })]);
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(3, 3, 0.2), new THREE.MeshBasicMaterial());
+    wall.position.set(0, 1.5, 1.5);
+    wall.updateMatrixWorld();
+    expect(inner.pick(new THREE.Vector2(0, 0), camera, [wall])).toBeUndefined();
+    expect(inner.pick(new THREE.Vector2(0, 0), camera, [wall], (id) => id === 'in')).toBe('in');
+  });
+
+  it('nearest() finds the closest box among candidates within a radius', () => {
+    const hs2 = createHotspots([
+      loc('a', 'キャビン', { x: 0, y: 1, z: 0, w: 0.2, h: 0.2, d: 0.2 }),
+      loc('b', 'キャビン', { x: 2, y: 1, z: 0, w: 0.2, h: 0.2, d: 0.2 }),
+    ]);
+    expect(hs2.nearest(new THREE.Vector3(1.6, 1, 0), 1.0, () => true)).toBe('b');
+    expect(hs2.nearest(new THREE.Vector3(5, 1, 0), 1.0, () => true)).toBeUndefined();
+  });
 });
