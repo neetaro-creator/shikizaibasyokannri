@@ -72,7 +72,7 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
     select(ordered[(i + d + ordered.length) % ordered.length].id);
   };
 
-  /** キャブ内の場所を選んだときは車体を透かす(中の座席などは透かさない)。 */
+  /** キャブ内の場所を選んだときは車体を透かす(中の座席などは透かさない)。車内視点のある車(救急)は、外観では透かさない。 */
   function setXray(on: boolean) {
     if (on) viewer.dataset.xray = 'true';
     else delete viewer.dataset.xray;
@@ -164,7 +164,7 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
       applyMode();
       if (!loc) overview(false);
     }
-    setXray(viewMode() === 'outside' && isInside(loc));
+    setXray(!hasInterior && viewMode() === 'outside' && isInside(loc));
     history.replaceState(null, '', vehicleHref(v.id, loc?.id) + (align ? `${loc ? '&' : '?'}align=1` : ''));
     panel?.show(loc);
     root.querySelectorAll<HTMLButtonElement>('[data-loc]').forEach((b) => b.classList.toggle('on', b.dataset.loc === loc?.id));
@@ -234,7 +234,7 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
       s.scene.add(object);
       object.traverse((o) => { if (o.userData.opensFor) doors.push(o); });
       applyMode();
-      setXray(viewMode() === 'outside' && isInside(current));
+      setXray(!hasInterior && viewMode() === 'outside' && isInside(current));
       // 車両の大きさに合わせて初期カメラを引く(場所を指定して開いたときはその場所へ寄る)
       if (!focus) overview(true);
       if (fallback) note.textContent = '3Dモデルを読み込めなかったため、簡易モデルで表示しています。';
