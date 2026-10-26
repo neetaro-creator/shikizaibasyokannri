@@ -68,6 +68,21 @@ test('一覧を左右にスワイプすると次/前の場所が光る', async (
   await expect(page.getByTestId('viewer')).toHaveAttribute('data-highlight', ids[i]);
 });
 
+test('品目の下の何もないところをスワイプしても場所が送られる', async ({ page }) => {
+  await open(page, 'tank1-l21');
+  const ids = await order(page);
+  const i = ids.indexOf('tank1-l21');
+  const pane = (await page.getByTestId('pane').boundingBox())!;
+  const last = (await page.getByTestId('sheet').locator('a.row').last().boundingBox())!;
+  const y = pane.y + pane.height - 15;
+  expect(y).toBeGreaterThan(last.y + last.height + 10); // 品目の行より下の空白で操作している
+  await page.mouse.move(pane.x + pane.width * 0.8, y);
+  await page.mouse.down();
+  await page.mouse.move(pane.x + pane.width * 0.2, y + 5, { steps: 8 });
+  await page.mouse.up();
+  await expect(page).toHaveURL(new RegExp(`loc=${ids[i + 1]}$`));
+});
+
 test('見出しの › ‹ ボタンでも場所を送れる', async ({ page }) => {
   await open(page, 'tank1-l21');
   const ids = await order(page);

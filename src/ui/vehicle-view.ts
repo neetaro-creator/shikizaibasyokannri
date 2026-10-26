@@ -190,11 +190,11 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
   }
 
   if (focus) requestAnimationFrame(() => select(focus));
-  // 一覧を左右にスワイプ → 次/前の場所(縦の動きは一覧のスクロールに任せる)
+  // 下半分のどこでも左右にスワイプ → 次/前の場所(品目の下の空白も含む。縦の動きは一覧のスクロールに任せる)
   let swipeStart: { x: number; y: number } | undefined;
   let swiped = false;
-  sheet.addEventListener('pointerdown', (e) => { swipeStart = { x: e.clientX, y: e.clientY }; swiped = false; });
-  sheet.addEventListener('pointerup', (e) => {
+  pane.addEventListener('pointerdown', (e) => { swipeStart = sheet.hidden || panel?.el.contains(e.target as Node) ? undefined : { x: e.clientX, y: e.clientY }; swiped = false; });
+  pane.addEventListener('pointerup', (e) => {
     if (!swipeStart) return;
     const dx = e.clientX - swipeStart.x, dy = e.clientY - swipeStart.y;
     swipeStart = undefined;
@@ -204,7 +204,7 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
     }
   });
   // スワイプの指を離したときに、下の品目リンクが押されたことにしない
-  sheet.addEventListener('click', (e) => { if (swiped) { e.preventDefault(); e.stopPropagation(); swiped = false; } }, true);
+  pane.addEventListener('click', (e) => { if (swiped) { e.preventDefault(); e.stopPropagation(); swiped = false; } }, true);
   // ページ全体は動かさない:下半分の外、または下半分がスクロール不要のときは指の移動を打ち消す(3D の操作は別のイベント)
   const lockScroll = (e: TouchEvent) => {
     const inPane = pane.contains(e.target as Node);
