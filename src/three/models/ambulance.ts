@@ -39,7 +39,7 @@ const PART = { x0: 1.0, x1: 1.25 }; // 前の仕切りの棚
 
 const HOTSPOTS: Record<string, Hotspot | null> = {
   // キャブ
-  '運転席・助手席付近': at(1.55, 2.3, 0.9, 1.9, -0.85, 0.85),
+  '運転席・助手席付近': at(1.55, 2.2, 0.75, 1.42, -0.22, 0.22), // 前席の間のセンターコンソールとタブレット
   助手席後ろ: at(1.27, 1.5, 0.7, 1.6, -0.85, -0.1),
   // 前の仕切り(右寄り):A 収納。扉の表、扉の裏(開いた扉の位置)、中の3段(上・中・下)
   'A収納扉(表)': at(0.94, 0.99, 0.75, 1.93, 0.05, 0.55),
@@ -206,6 +206,9 @@ export function buildAmbulance(): THREE.Group {
   g.userData.eyes = {
     'A収納扉(裏)': [0.1, 1.45, 0.5],
     リアハッチ上部収納: [-1.3, 1.5, -0.15],
+    // キャブは患者室の通路から前を見る。助手席の後ろは前席の間から振り返る
+    '運転席・助手席付近': [0.3, 1.5, -0.18],
+    助手席後ろ: [2.25, 1.5, 0.4],
     // ステップの蓋は、反対側の端から斜めに見下ろす
     左スライドドア収納: [0.05, 1.15, -0.1],
     左スライドドアジャッキ収納: [0.5, 1.2, 0.0],
@@ -249,17 +252,36 @@ function buildInterior(): THREE.Group {
     span(wall, IN.rear, IN.front, IN.floor, IN.ceil, IN.z, IN.z + 0.02), // 右壁
     span(wall, IN.rear, IN.front, IN.floor, IN.ceil, -IN.z - 0.02, -IN.z), // 左壁
     span(wall, IN.rear - 0.02, IN.rear, IN.floor, IN.ceil, -IN.z, IN.z), // 後ろのドア
-    // 前の仕切り(A の棚の口を空ける)
-    span(wall, IN.front, IN.front + 0.02, IN.floor, IN.ceil, -IN.z, 0.05),
+    // 前の仕切り(運転席への通路と A の棚の口を空ける)
+    span(wall, IN.front, IN.front + 0.02, IN.floor, IN.ceil, -IN.z, -0.42),
+    span(wall, IN.front, IN.front + 0.02, IN.floor, 0.75, -0.42, 0.05),
+    span(wall, IN.front, IN.front + 0.02, 1.9, IN.ceil, -0.42, 0.05),
     span(wall, IN.front, IN.front + 0.02, IN.floor, IN.ceil, 0.55, IN.z),
     span(wall, IN.front, IN.front + 0.02, IN.floor, 0.6, 0.05, 0.55),
     span(wall, IN.front, IN.front + 0.02, 1.9, IN.ceil, 0.05, 0.55),
   ]) shell.add(m);
+  // キャブの殻:床・天井・横の壁(窓)・フロントガラス
+  const CAB = { x0: IN.front + 0.02, x1: 2.45, floor: 0.45, ceil: 2.0 };
+  const cabWall = mat(0x3a3f46, { side: THREE.DoubleSide });
+  const cabGlass = mat(0x9fb4c4, { transparent: true, opacity: 0.35, side: THREE.DoubleSide });
+  for (const m of [
+    span(mat(0x2a2d31), CAB.x0, CAB.x1, CAB.floor - 0.02, CAB.floor, -IN.z, IN.z),
+    span(mat(0x55595f, { side: THREE.DoubleSide }), CAB.x0, 1.95, CAB.ceil, CAB.ceil + 0.02, -IN.z, IN.z),
+  ]) shell.add(m);
+  for (const sgn of [1, -1]) {
+    const z0 = sgn * IN.z, z1 = sgn * (IN.z + 0.02);
+    shell.add(span(cabWall, CAB.x0, CAB.x1, CAB.floor, 1.3, z0, z1));
+    shell.add(span(cabWall, CAB.x0, 1.12, 1.3, CAB.ceil, z0, z1));
+    shell.add(span(cabGlass, 1.12, 1.95, 1.3, 1.92, z0, z1));
+  }
+  const wsGlass = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.01, 2 * IN.z), cabGlass);
+  wsGlass.position.set(2.15, 1.55, 0);
+  wsGlass.rotation.z = -Math.atan2(0.9, 0.6);
+  shell.add(wsGlass);
   inside.add(shell);
   // 窓(すりガラス)、後ろの窓、運転席への通路
   add(frosted, -2.2, -1.0, 1.3, 1.9, -IN.z + 0.001, -IN.z + 0.006);
   add(frosted, IN.rear + 0.001, IN.rear + 0.006, 1.38, 2.0, -0.6, 0.6);
-  add(smoke, IN.front - 0.006, IN.front - 0.001, 0.75, 1.9, -0.42, 0.03);
   // 左のスライドドア(内張りと窓、取っ手)
   add(mat(0xe1e2dc), 0.15, 0.95, 0.55, 1.95, -IN.z + 0.001, -IN.z + 0.006);
   add(frosted, 0.25, 0.9, 1.32, 1.88, -IN.z + 0.006, -IN.z + 0.01);
@@ -369,15 +391,21 @@ function buildInterior(): THREE.Group {
   add(steel, -2.3, -0.3, 0.6, 0.74, -0.3, 0.35);
   add(mattress, -2.25, -0.35, 0.74, 0.86, -0.27, 0.32, 0.04);
 
-  // キャブ:座席、ダッシュボード、ハンドル(右ハンドル)
-  const seat = mat(0x2b3340, { roughness: 0.7 });
-  add(seat, 1.6, 2.1, 0.7, 1.05, -0.8, -0.15, 0.04);
-  add(seat, 1.6, 2.1, 0.7, 1.05, 0.15, 0.8, 0.04);
-  add(seat, 1.45, 1.6, 1.05, 1.7, -0.75, -0.2, 0.04);
-  add(seat, 1.45, 1.6, 1.05, 1.7, 0.2, 0.75, 0.04);
-  add(dark, 2.2, 2.45, 0.9, 1.15, -0.85, 0.85);
+  // キャブ:座席(間にセンターコンソール)、ダッシュボード、タブレット、天井の計器盤、ハンドル(右ハンドル)
+  const seat = mat(0xcfc9bc, { roughness: 0.8 });
+  for (const [z0, z1] of [[-0.8, -0.25], [0.25, 0.8]]) {
+    add(seat, 1.6, 2.05, 0.75, 0.95, z0, z1, 0.05);
+    add(seat, 1.5, 1.62, 0.95, 1.65, z0 + 0.03, z1 - 0.03, 0.05);
+    add(seat, 1.52, 1.6, 1.68, 1.85, z0 + 0.12, z1 - 0.12, 0.03); // ヘッドレスト
+  }
+  add(dark, 1.55, 2.15, 0.45, 1.0, -0.2, 0.2, 0.02); // センターコンソール(小物入れ)
+  add(dark, 2.12, 2.18, 1.05, 1.4, -0.17, 0.15, 0.01); // タブレット
+  add(screen, 2.115, 2.12, 1.09, 1.36, -0.14, 0.12);
+  add(dark, 2.2, 2.45, 0.9, 1.2, -0.85, 0.85); // ダッシュボード
+  add(dark, 1.85, 2.15, 1.94, 2.0, -0.22, 0.22); // 天井の計器盤
+  add(white, 1.36, 1.44, 1.45, 1.75, 0.5, 0.75, 0.08); // 運転席の後ろのヘルメット
   const wheelRing = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.025, 8, 24), dark);
-  wheelRing.position.set(2.15, 1.2, 0.47);
+  wheelRing.position.set(2.1, 1.25, 0.5);
   wheelRing.rotation.y = Math.PI / 2;
   wheelRing.rotation.x = 0.4;
   inside.add(wheelRing);
