@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { buildDb, DbError, type CsvName } from '../src/data/build-db';
 
-const names: CsvName[] = ['vehicles', 'locations', 'items', 'stock'];
+const names: CsvName[] = ['vehicles', 'locations', 'items', 'stock', 'categories'];
 const files = Object.fromEntries(names.map((n) => [n, readFileSync(`data/${n}.csv`, 'utf-8')])) as Record<CsvName, string>;
 try {
   const db = buildDb(files);

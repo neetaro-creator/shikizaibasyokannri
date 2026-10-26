@@ -42,7 +42,7 @@ function route(): void {
   document.body.dataset.route = r.name;
   switch (r.name) {
     case 'item': itemView.render(main, db, r.id!); break;
-    case 'browse': searchView.render(main, db, r.query.get('cat') ?? undefined); break; // 以前の「探す」画面は検索画面に統合
+    case 'browse': searchView.render(main, db, r.query.get('cat') ?? undefined, r.query.get('sub') ?? undefined); break; // 以前の「探す」画面は検索画面に統合
     case 'totals': totalsView.render(main, db); break;
     case 'vehicles': renderVehicles(main, db); break;
     case 'vehicle': {
@@ -51,7 +51,7 @@ function route(): void {
       else cleanup = vehicleView.render(main, db, v, r.query.get('loc') ?? undefined, r.query.get('align') === '1');
       break;
     }
-    default: searchView.render(main, db, r.query.get('cat') ?? undefined);
+    default: searchView.render(main, db, r.query.get('cat') ?? undefined, r.query.get('sub') ?? undefined);
   }
   window.scrollTo(0, scrollPos.get(currentKey) ?? 0);
 }

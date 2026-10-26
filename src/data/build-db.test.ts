@@ -47,3 +47,17 @@ describe('buildDb', () => {
     expect(() => buildDb(bad)).toThrow(DbError);
   });
 });
+
+describe('categories.csv', () => {
+  it('majors を "|" で分け、品の中分類が無ければ行番号つきのエラー', () => {
+    const cats = 'category,majors\nロープ・器具,救助|火災\n';
+    expect(buildDb({ ...base, categories: cats }).categories).toEqual([{ name: 'ロープ・器具', majors: ['救助', '火災'] }]);
+    try {
+      buildDb({ ...base, categories: 'category,majors\n消火,火災\n' });
+      expect.unreachable();
+    } catch (e) {
+      expect((e as DbError).file).toBe('items.csv');
+      expect((e as DbError).line).toBe(2);
+    }
+  });
+});

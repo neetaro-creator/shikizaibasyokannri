@@ -1,5 +1,5 @@
 import { normalize } from './normalize';
-import type { Db, Item, Location, Vehicle, VehicleId } from './types';
+import type { Category, Db, Item, Location, Vehicle, VehicleId } from './types';
 
 export interface Breakdown { vehicle: Vehicle; location: Location; qty?: number; qtyNote?: string }
 export interface ItemSummary { item: Item; total: number; hasUncounted: boolean; breakdown: Breakdown[] }
@@ -75,4 +75,22 @@ export function formatTotal(s: ItemSummary): string {
   if (!notes.length) return String(s.total);
   const extra = notes[0] + (notes.length > 1 ? 'ほか' : '');
   return s.total === 0 ? extra : `${s.total}+${extra}`;
+}
+
+/** 大分類の一覧(categories.csv に出てくる順)。 */
+export function majors(db: Db): string[] {
+  return [...new Set(db.categories.flatMap((c) => c.majors))];
+}
+
+/** 大分類に入る中分類。その大分類を先頭に挙げた中分類(本来の持ち場)を先に、あとは categories.csv の順。 */
+export function categoriesIn(db: Db, major: string): Category[] {
+  return db.categories.filter((c) => c.majors.includes(major))
+    .map((c, i) => ({ c, i, rank: c.majors.indexOf(major) }))
+    .sort((a, b) => a.rank - b.rank || a.i - b.i)
+    .map((x) => x.c);
+}
+
+/** 品が入る大分類(中分類が複数の大分類にまたがれば複数)。 */
+export function majorsOf(db: Db, item: Item): string[] {
+  return db.categories.find((c) => c.name === item.category)?.majors ?? [];
 }

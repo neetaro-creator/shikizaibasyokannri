@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatTotal, itemsAt, itemsByVehicle, search, summarize, totals, uncountedNotes } from './query';
+import { categoriesIn, formatTotal, itemsAt, itemsByVehicle, majors, majorsOf, search, summarize, totals, uncountedNotes } from './query';
 import { normalize } from './normalize';
 import type { Db } from './types';
 
@@ -19,6 +19,11 @@ const db: Db = {
     { id: 'c', name: '65mmホースバッグ', aliases: [], category: '消火' },
     { id: 'd', name: '吸管スパナ', aliases: ['すぱな'], category: '工具' },
     { id: 'e', name: '吸着マット', aliases: [], category: '工具' },
+  ],
+  categories: [
+    { name: 'ロープ・器具', majors: ['救助', '火災'] },
+    { name: '消火', majors: ['火災'] },
+    { name: '工具', majors: ['救助', '油漏れ'] },
   ],
   stock: [
     { itemId: 'a', locationId: 't-l', qty: 5 },
@@ -119,5 +124,14 @@ describe('listing', () => {
     expect(search(db, 'スパナ', only)).toEqual([]);
     // 空の集合・未指定は全車
     expect(search(db, 'カラビナ', new Set()).length).toBe(2);
+  });
+});
+
+describe('大分類と中分類', () => {
+  it('大分類は categories の出てくる順、中分類はいくつもの大分類にまたがる', () => {
+    expect(majors(db)).toEqual(['救助', '火災', '油漏れ']);
+    expect(categoriesIn(db, '火災').map((c) => c.name)).toEqual(['消火', 'ロープ・器具']); // 火災が本来の持ち場の中分類が先
+    expect(categoriesIn(db, '救助').map((c) => c.name)).toEqual(['ロープ・器具', '工具']);
+    expect(majorsOf(db, db.items[0])).toEqual(['救助', '火災']);
   });
 });

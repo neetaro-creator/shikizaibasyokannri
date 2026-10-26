@@ -17,10 +17,18 @@ test('検索 → 詳細で合計と車両別内訳が見える', async ({ page }
   await page.screenshot({ path: 'e2e/screens/item.png', fullPage: true });
 });
 
-test('分類(旧「探す」)を選ぶと品が並ぶ', async ({ page }) => {
+test('大分類を選ぶと中分類ごとに品が並び、中分類で絞れる(中分類は大分類をまたぐ)', async ({ page }) => {
   await page.goto('./#/browse');
-  await page.getByRole('button', { name: 'ロープ・器具' }).click();
+  await page.getByRole('button', { name: /^救助/ }).click();
+  await expect(page.getByRole('heading', { name: '破壊器具' })).toBeVisible();
+  await page.getByRole('group', { name: '中分類' }).getByRole('button', { name: /^ロープ/ }).click();
+  await expect(page).toHaveURL(/sub=/);
   await expect(page.getByRole('link', { name: /カラビナ/ }).first()).toBeVisible();
+  await expect(page.getByRole('link', { name: /バール/ })).toHaveCount(0);
+  // 破壊器具は火災にも出る
+  await page.getByRole('button', { name: /^火災/ }).click();
+  await expect(page.getByRole('heading', { name: '破壊器具' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '筒先' })).toBeVisible();
   await noHorizontalScroll(page);
   await page.screenshot({ path: 'e2e/screens/browse.png', fullPage: true });
 });
@@ -58,7 +66,7 @@ test('詳細:合計は数字+数で書かれていない分の中身、車両ご
 test('検索と探すは一つの画面:タブは3つ、検索画面は分類と車両の絞り込みだけ(よく探す品・車両の場所は出さない)', async ({ page }) => {
   await page.goto('./');
   await expect(page.locator('nav.tabs a')).toHaveText(['検索', '車両', '総数']);
-  await page.getByRole('button', { name: /救助/ }).click();
+  await page.getByRole('button', { name: /^救助/ }).click();
   await expect(page).toHaveURL(/cat=/);
   await expect(page.locator('.grid .card').first()).toBeVisible();
   await expect(page.getByRole('checkbox', { name: '信楽タンク1' })).toBeVisible();

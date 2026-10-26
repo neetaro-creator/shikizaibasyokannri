@@ -1,7 +1,7 @@
 import Papa from 'papaparse';
-import type { Db, Hotspot, Item, Location, Stock, Vehicle, VehicleId } from './types';
+import type { Category, Db, Hotspot, Item, Location, Stock, Vehicle, VehicleId } from './types';
 
-export type CsvName = 'vehicles' | 'locations' | 'items' | 'stock';
+export type CsvName = 'vehicles' | 'locations' | 'items' | 'stock' | 'categories';
 
 export class DbError extends Error {
   constructor(public file: string, public line: number, message: string) {
@@ -33,7 +33,8 @@ function hotspot(file: string, line: number, s: string | undefined): Hotspot | u
   return { x, y, z, w, h, d };
 }
 
-export function buildDb(files: Record<CsvName, string>): Db {
+/** categories.csv は省略できる(そのときは品の中分類をそのまま「共通」に入れる)。 */
+export function buildDb(files: Record<Exclude<CsvName, 'categories'>, string> & { categories?: string }): Db {
   const vehicles: Vehicle[] = rows('vehicles.csv', files.vehicles).map(({ line, r }) => {
     if (!VEHICLE_IDS.includes(r.vehicle_id as VehicleId)) {
       throw new DbError('vehicles.csv', line, `不明な vehicle_id: ${r.vehicle_id}`);
@@ -58,14 +59,25 @@ export function buildDb(files: Record<CsvName, string>): Db {
   });
   const lIds = new Set(locations.map((l) => l.id));
 
-  const items: Item[] = rows('items.csv', files.items).map(({ r }) => ({
-    id: r.item_id,
-    name: r.name,
-    aliases: (r.aliases ?? '').split(';').map((a) => a.trim()).filter(Boolean),
-    category: r.category,
-    ...(opt(r.photo) && { photo: opt(r.photo) }),
-    ...(opt(r.model) && { model: opt(r.model) }),
-  }));
+  const categories: Category[] | undefined = files.categories === undefined ? undefined
+    : rows('categories.csv', files.categories).map(({ line, r }) => {
+      const majors = (r.majors ?? '').split('|').map((m) => m.trim()).filter(Boolean);
+      if (!majors.length) throw new DbError('categories.csv', line, `大分類(majors)が空: ${r.category}`);
+      return { name: r.category, majors };
+    });
+  const catNames = new Set(categories?.map((c) => c.name));
+
+  const items: Item[] = rows('items.csv', files.items).map(({ line, r }) => {
+    if (categories && !catNames.has(r.category)) throw new DbError('items.csv', line, `categories.csv にない中分類: ${r.category}`);
+    return {
+      id: r.item_id,
+      name: r.name,
+      aliases: (r.aliases ?? '').split(';').map((a) => a.trim()).filter(Boolean),
+      category: r.category,
+      ...(opt(r.photo) && { photo: opt(r.photo) }),
+      ...(opt(r.model) && { model: opt(r.model) }),
+    };
+  });
   const iIds = new Set(items.map((i) => i.id));
 
   const stock: Stock[] = rows('stock.csv', files.stock).map(({ line, r }) => {
@@ -81,5 +93,5 @@ export function buildDb(files: Record<CsvName, string>): Db {
     return s;
   });
 
-  return { vehicles, locations, items, stock };
+  return { vehicles, locations, items, stock, categories: categories ?? [...new Set(items.map((i) => i.category))].map((name) => ({ name, majors: ['共通'] })) };
 }

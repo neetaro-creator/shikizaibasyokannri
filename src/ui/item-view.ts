@@ -1,4 +1,4 @@
-import { summarize, uncountedNotes } from '../data/query';
+import { majorsOf, summarize, uncountedNotes } from '../data/query';
 import type { Db } from '../data/types';
 import { h, vehicleHref } from './dom';
 import { icon } from './icons';
@@ -20,7 +20,7 @@ export function render(root: HTMLElement, db: Db, id: string): void {
   }).filter((x) => x.rows.length);
   const extra = uncountedNotes(s);
   const parts = [
-    h('p', { class: 'kicker' }, s.item.category),
+    h('p', { class: 'kicker' }, `${majorsOf(db, s.item).join('・')} › ${s.item.category}`),
     h('h1', {}, s.item.name),
     s.item.photo ? h('img', { class: 'photo', src: base + s.item.photo, alt: s.item.name }) : null,
     h('section', { class: 'panel total' },

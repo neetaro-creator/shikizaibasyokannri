@@ -1,5 +1,5 @@
-import { formatTotal, search, summarize } from '../data/query';
-import type { Db } from '../data/types';
+import { categoriesIn, formatTotal, majors, majorsOf, search, summarize } from '../data/query';
+import type { Db, Item } from '../data/types';
 import { h, itemHref } from './dom';
 import { icon } from './icons';
 import { shortName, vehicleTag } from './vehicle-tag';
@@ -24,37 +24,52 @@ const saveChosen = () => {
 /** 選んだ車両に積んでいる品か(未選択なら全部)。 */
 const onChosen = (db: Db, itemId: string) => !chosen.size || summarize(db, itemId, chosen).breakdown.length > 0;
 
-/** 分類タイルと、選んだ分類の品カード(名前が出てこないとき用)。 */
-function categoryBrowser(db: Db, selected?: string) {
-  const categories = [...new Set(db.items.map((i) => i.category))];
-  const grid = h('div', { class: 'grid' });
+/** 大分類のタイルと、選んだ大分類の中分類チップ・品カード(名前が出てこないとき用)。
+ *  中分類は大分類をまたぐことがあり(例:破壊器具は救助にも火災にも出る)、同じ品がいくつもの大分類に出る。 */
+function categoryBrowser(db: Db, selected?: string, selectedSub?: string) {
+  const all = majors(db);
+  const body = h('div', { class: 'browse' });
   const base = import.meta.env.BASE_URL;
-  const show = (cat: string) => {
-    history.replaceState(null, '', `#/?cat=${encodeURIComponent(cat)}`);
-    tiles.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.cat === cat));
-    grid.replaceChildren(...db.items.filter((i) => i.category === cat && onChosen(db, i.id)).map((i) =>
-      h('a', { href: itemHref(i.id), class: 'card' },
-        i.photo ? h('img', { src: base + i.photo, alt: '', loading: 'lazy' }) : h('div', { class: 'ph' }, i.name.slice(0, 2)),
-        h('span', {}, i.name))));
-    tiles.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  const itemsOf = (cat: string) => db.items.filter((i) => i.category === cat && onChosen(db, i.id));
+  const inMajor = (m: string) => db.items.filter((i) => majorsOf(db, i).includes(m) && onChosen(db, i.id));
+  const card = (i: Item) => h('a', { href: itemHref(i.id), class: 'card' },
+    i.photo ? h('img', { src: base + i.photo, alt: '', loading: 'lazy' }) : h('div', { class: 'ph' }, i.name.slice(0, 2)),
+    h('span', {}, i.name));
+  const show = (m: string, sub?: string, scroll = true) => {
+    history.replaceState(null, '', `#/?cat=${encodeURIComponent(m)}${sub ? `&sub=${encodeURIComponent(sub)}` : ''}`);
+    tiles.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.cat === m));
+    const cats = categoriesIn(db, m).filter((c) => itemsOf(c.name).length);
+    const chip = (label: string, value: string | undefined, n: number) =>
+      h('button', { type: 'button', class: value === sub ? 'on' : '', 'data-sub': value ?? '', onclick: () => show(m, value, false) },
+        label, h('small', { class: 'num' }, String(n)));
+    body.replaceChildren(
+      h('div', { class: 'chips subcats', role: 'group', 'aria-label': '中分類' },
+        chip('すべて', undefined, inMajor(m).length), cats.map((c) => chip(c.name, c.name, itemsOf(c.name).length))),
+      ...(sub ? [h('div', { class: 'grid' }, itemsOf(sub).map(card))]
+        : cats.map((c) => h('section', { class: 'subcat' }, h('h3', { class: 'label' }, c.name), h('div', { class: 'grid' }, itemsOf(c.name).map(card))))));
+    if (scroll) tiles.scrollIntoView({ block: 'start', behavior: 'smooth' });
   };
-  const tiles = h('div', { class: 'tiles' }, categories.map((c) =>
-    h('button', { type: 'button', 'data-cat': c, onclick: () => show(c) },
-      icon(c, 26), h('span', {}, c), h('small', { class: 'num' }, String(db.items.filter((i) => i.category === c).length)))));
-  if (selected && categories.includes(selected)) requestAnimationFrame(() => show(selected));
+  const tiles = h('div', { class: 'tiles' }, all.map((m) =>
+    h('button', { type: 'button', 'data-cat': m, onclick: () => show(m) },
+      icon(m, 26), h('span', {}, m), h('small', { class: 'num' }, String(inMajor(m).length)))));
+  if (selected && all.includes(selected)) {
+    const sub = selectedSub && categoriesIn(db, selected).some((c) => c.name === selectedSub) ? selectedSub : undefined;
+    requestAnimationFrame(() => show(selected, sub));
+  }
   const refresh = () => {
     tiles.querySelectorAll<HTMLButtonElement>('button').forEach((b) => {
-      b.querySelector('small')!.textContent = String(db.items.filter((i) => i.category === b.dataset.cat && onChosen(db, i.id)).length);
+      b.querySelector('small')!.textContent = String(inMajor(b.dataset.cat!).length);
     });
     const on = tiles.querySelector<HTMLButtonElement>('button.on');
-    if (on) show(on.dataset.cat!);
+    const sub = body.querySelector<HTMLButtonElement>('.subcats button.on')?.dataset.sub;
+    if (on) show(on.dataset.cat!, sub || undefined, false);
   };
-  return [h('h2', { class: 'label' }, '分類から'), tiles, grid, refresh] as const;
+  return [h('h2', { class: 'label' }, '分類から'), tiles, body, refresh] as const;
 }
 
-export function render(root: HTMLElement, db: Db, cat?: string): void {
+export function render(root: HTMLElement, db: Db, cat?: string, sub?: string): void {
   const list = h('div', { class: 'results' });
-  const [catLabel, catTiles, catGrid, refreshCats] = categoryBrowser(db, cat);
+  const [catLabel, catTiles, catGrid, refreshCats] = categoryBrowser(db, cat, sub);
   const idle = h('div', { class: 'idle' }, catLabel, catTiles, catGrid);
 
   const update = (q: string) => {
