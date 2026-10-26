@@ -27,7 +27,20 @@ const at = (x0: number, x1: number, y0: number, y1: number, z0: number, z1: numb
 });
 
 // 横から見た輪郭の要所
-const COWL = { x: CMD.front - 0.24, y: 1.0 }; // フロントガラスの下端。ボンネットはほとんど無い
+const COWL_Y = 1.04;
+const COWL = { x: CMD.front - 0.3, y: COWL_Y }; // フロントガラスの下端。ボンネットはほとんど無い
+// 鼻先:上から見て角が大きく丸く、横から見るとバンパーがいちばん前で、上へ行くほど後ろへ傾いてフロントガラスにつながる。
+// 高さごとの断面 [高さ y, 先端の後退量, 角の丸みの半径, 半幅の詰め]
+const NOSE_BACK = CMD.front - 0.6;
+const NOSE: [number, number, number, number][] = [
+  [0.3, 0.04, 0.3, 0.03],
+  [0.4, 0.0, 0.3, 0.0],
+  [0.62, 0.0, 0.3, 0.0],
+  [0.68, 0.04, 0.32, 0.0],
+  [0.94, 0.09, 0.34, 0.005],
+  [1.0, 0.15, 0.37, 0.01],
+  [COWL_Y, 0.3, 0.4, 0.02],
+];
 const SHIELD_TOP = { x: CMD.front - 1.05, y: 1.9 }; // フロントガラスの上端
 const BELT = 1.16; // 窓の下端
 const WIN_TOP = 1.86;
@@ -55,17 +68,43 @@ function profile(): THREE.Shape {
   arch(rearAxle);
   s.lineTo(frontAxle - 0.41, bottom);
   arch(frontAxle);
-  s.lineTo(front - B - 0.08, bottom);
-  s.lineTo(front - B, 0.45);
-  s.lineTo(front - B, 0.82);
-  s.quadraticCurveTo(front - B, 0.93, front - B - 0.07, 0.95); // 鼻先の丸み
-  s.lineTo(COWL.x, COWL.y);
+  s.lineTo(COWL.x - B, bottom); // ここから前は鼻先(nose)が覆う
+  s.lineTo(COWL.x - B, COWL.y);
   s.lineTo(SHIELD_TOP.x, SHIELD_TOP.y);
   s.quadraticCurveTo(SHIELD_TOP.x - 0.12, roof - B, SHIELD_TOP.x - 0.3, roof - B);
   s.lineTo(rear + 0.1, roof - B);
   s.quadraticCurveTo(rear + B, roof - B, rear + B, roof - 0.12);
   s.lineTo(rear + B, bottom);
   return s;
+}
+
+/** 鼻先:NOSE の断面(上から見た角丸の形)を下から順につないだ面。上下はふさぐ。 */
+function noseGeometry(): THREE.BufferGeometry {
+  const ring = ([y, back, r, inset]: [number, number, number, number]) => {
+    const x1 = CMD.front - back, h = HALF - inset, pts: THREE.Vector3[] = [];
+    pts.push(new THREE.Vector3(NOSE_BACK, y, -h));
+    for (let i = 0; i <= 8; i++) { const a = -Math.PI / 2 + (i / 8) * (Math.PI / 2); pts.push(new THREE.Vector3(x1 - r + Math.cos(a) * r, y, -h + r + Math.sin(a) * r)); }
+    for (let i = 1; i < 6; i++) { const t = i / 6, z = -h + r + t * (2 * h - 2 * r); pts.push(new THREE.Vector3(x1 + 0.025 * Math.sin(Math.PI * t), y, z)); } // 正面はわずかにふくらむ
+    for (let i = 0; i <= 8; i++) { const a = (i / 8) * (Math.PI / 2); pts.push(new THREE.Vector3(x1 - r + Math.cos(a) * r, y, h - r + Math.sin(a) * r)); }
+    pts.push(new THREE.Vector3(NOSE_BACK, y, h));
+    return pts;
+  };
+  const rings = NOSE.map(ring);
+  const n = rings[0].length;
+  const pos: number[] = [];
+  const tri = (a: THREE.Vector3, b: THREE.Vector3, c: THREE.Vector3) => pos.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z);
+  for (let k = 0; k + 1 < rings.length; k++) {
+    const lo = rings[k], hi = rings[k + 1];
+    for (let i = 0; i + 1 < n; i++) { tri(lo[i], lo[i + 1], hi[i + 1]); tri(lo[i], hi[i + 1], hi[i]); }
+  }
+  for (const [r, up] of [[rings[0], false], [rings[rings.length - 1], true]] as const) {
+    const c = new THREE.Vector3(NOSE_BACK, r[0].y, 0);
+    for (let i = 0; i + 1 < n; i++) up ? tri(c, r[i + 1], r[i]) : tri(c, r[i], r[i + 1]);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.computeVertexNormals();
+  return geo;
 }
 
 /** 側面に貼る板(窓など)。pts は (x, y) の多角形。 */
@@ -120,32 +159,50 @@ export function buildCommandCar(): THREE.Group {
     // ドアの合わせ目
     const seam = (x: number, y0: number, y1: number) => sidePlate([[x - 0.006, y0], [x + 0.006, y0], [x + 0.006, y1], [x - 0.006, y1]], black, s, 0.006);
     g.add(seam(FRONT_DOOR_REAR, 0.42, 1.92));
-    g.add(seam(CMD.frontAxle + 0.43, 0.62, 1.2)); // 前ドアの前(前輪の後ろ寄り)
-    if (s < 0) g.add(seam(SLIDE_REAR, 0.42, 1.92)); // 左はスライドドア
+    g.add(seam(COWL.x - 0.06, 0.78, COWL.y + 0.02)); // 前ドアの前
+    g.add(seam(SLIDE_REAR, 0.42, 1.92)); // スライドドアは左右両側
     g.add(sidePlate([[FRONT_DOOR_REAR - 0.02, 1.885], [rear + 0.25, 1.885], [rear + 0.25, 1.9], [FRONT_DOOR_REAR - 0.02, 1.9]], black, s, 0.006)); // スライドドアのレール(屋根下)
     // 取っ手
     const zf = s * (HALF + 0.012);
     g.add(span(black, FRONT_DOOR_REAR + 0.1, FRONT_DOOR_REAR + 0.24, 1.04, 1.08, zf - 0.01, zf + 0.01));
-    if (s < 0) g.add(span(black, FRONT_DOOR_REAR - 0.25, FRONT_DOOR_REAR - 0.11, 1.04, 1.08, zf - 0.01, zf + 0.01));
+    g.add(span(black, FRONT_DOOR_REAR - 0.25, FRONT_DOOR_REAR - 0.11, 1.04, 1.08, zf - 0.01, zf + 0.01));
     // ドアミラー
-    g.add(box(0.1, 0.05, 0.1, black, COWL.x - 0.12, 1.22, s * (HALF + 0.05)));
-    g.add(box(0.08, 0.2, 0.15, black, COWL.x - 0.14, 1.3, s * (HALF + 0.11), 0.025));
-    // 前の横のウインカー
-    g.add(span(amber, front - 0.3, front - 0.22, 0.86, 0.9, s * HALF - 0.01, s * (HALF + 0.004)));
+    g.add(box(0.1, 0.05, 0.1, black, COWL.x - 0.1, 1.22, s * (HALF + 0.05)));
+    g.add(box(0.08, 0.2, 0.15, black, COWL.x - 0.12, 1.3, s * (HALF + 0.11), 0.025));
   }
 
-  // ── 前 ──
+  // ── 前(200系後期:角の丸い鼻先、横長のヘッドライトが角まで回り込み、間にメッキのグリル) ──
+  const nose = new THREE.Mesh(noseGeometry(), red);
+  nose.name = 'nose';
+  g.add(nose);
   const fx = front;
-  g.add(span(black, fx - 0.03, fx + 0.01, 0.6, 0.78, -0.5, 0.5)); // グリル
-  for (const y of [0.64, 0.69, 0.74]) g.add(span(steel, fx + 0.005, fx + 0.015, y, y + 0.012, -0.45, 0.45)); // メッキの横桟
+  // ヘッドライトの段は上へ行くほど後ろへ傾く(断面 0.68→0.94 で 0.04→0.09 後退)
+  const lean = Math.atan2(0.05, 0.26);
+  const faceX = (y: number) => fx - 0.04 - ((y - 0.68) / 0.26) * 0.05;
+  const lamp = (m: THREE.Material, y: number, h: number, z0: number, z1: number) => {
+    const l = span(m, faceX(y) - 0.02, faceX(y) + 0.012, y - h / 2, y + h / 2, z0, z1);
+    l.rotation.z = lean;
+    return l;
+  };
   for (const s of [1, -1]) {
-    g.add(span(whiteLamp, fx - 0.04, fx + 0.005, 0.66, 0.84, s * 0.52, s * 0.8)); // ヘッドライト
-    g.add(span(amber, fx - 0.05, fx + 0.004, 0.62, 0.66, s * 0.62, s * 0.8));
+    g.add(lamp(whiteLamp, 0.82, 0.17, s * 0.38, s * 0.56)); // ヘッドライト(正面)
+    // 角の丸みに沿って横へ回り込む部分(前から白・白・橙)
+    const cr = 0.33, cxx = faceX(0.82) - cr;
+    for (const [a, m] of [[0.3, whiteLamp], [0.68, whiteLamp], [1.08, amber]] as const) {
+      const l = box(0.03, 0.15, 0.13, m, cxx + Math.cos(a) * cr, 0.82, s * (HALF - cr + Math.sin(a) * cr));
+      l.rotation.y = -s * a;
+      g.add(l);
+    }
   }
-  g.add(span(dark, fx - 0.08, fx + 0.01, 0.3, 0.5, -HALF + 0.02, HALF - 0.02, 0.03)); // バンパー下(黒い樹脂)
-  g.add(span(black, fx + 0.005, fx + 0.015, 0.36, 0.46, -0.35, 0.35)); // 下のグリル
-  g.add(span(steel, fx + 0.002, fx + 0.012, 0.47, 0.57, -0.17, 0.17)); // ナンバー
-  for (const s of [1, -1]) g.add(span(redLamp, fx - 0.03, fx + 0.01, 0.5, 0.56, s * 0.42, s * 0.56)); // 前面の赤色灯
+  g.add(lamp(black, 0.82, 0.15, -0.37, 0.37)); // グリル
+  for (const y of [0.79, 0.85]) g.add(lamp(steel, y, 0.014, -0.35, 0.35)); // メッキの横桟
+  g.add(lamp(steel, 0.905, 0.02, -0.38, 0.38)); // グリル上のメッキ
+  g.add(lamp(steel, 0.82, 0.07, -0.05, 0.05)); // エンブレム
+  // バンパー:下の大きな黒い開口、ナンバー、赤色灯
+  g.add(span(black, fx - 0.03, fx + 0.02, 0.36, 0.56, -0.5, 0.5));
+  g.add(span(steel, fx + 0.015, fx + 0.025, 0.44, 0.54, -0.17, 0.17)); // ナンバー
+  for (const s of [1, -1]) g.add(span(redLamp, fx - 0.03, fx + 0.015, 0.44, 0.52, s * 0.55, s * 0.66)); // 前面の赤色灯
+  g.add(span(dark, fx - 0.3, fx - 0.03, 0.27, 0.31, -HALF + 0.1, HALF - 0.1)); // バンパー下のスポイラー
 
   // ── 屋根の赤色灯(前寄りに横長) ──
   const lx0 = SHIELD_TOP.x - 0.5, lx1 = SHIELD_TOP.x - 0.2;
