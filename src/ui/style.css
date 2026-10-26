@@ -57,3 +57,14 @@ a { color: inherit; }
 }
 .tabs a { flex: 1; text-align: center; padding: 14px 0; text-decoration: none; font-weight: 600; color: var(--muted); }
 .tabs a.on { color: var(--red); }
+.viewer { position: relative; height: 52vh; min-height: 280px; margin: 0 -16px; background: radial-gradient(ellipse at 50% 40%, var(--card), var(--bg)); }
+.viewer canvas { width: 100%; height: 100%; display: block; touch-action: none; }
+.sheet {
+  position: fixed; left: 0; right: 0; bottom: calc(52px + env(safe-area-inset-bottom)); z-index: 9;
+  max-height: 36vh; overflow-y: auto; background: var(--card); border-top: 3px solid var(--hl);
+  border-radius: 14px 14px 0 0; padding: 8px 16px 12px; box-shadow: 0 -6px 20px rgba(0, 0, 0, .18);
+}
+.sheet[hidden] { display: none; }
+.sheet-head { display: flex; align-items: center; gap: 8px; position: sticky; top: -8px; background: var(--card); padding: 6px 0; }
+.sheet-head strong { flex: 1; font-size: 17px; }
+.sheet .close { font-size: 22px; line-height: 1; width: 40px; height: 40px; border: 0; background: none; color: var(--text); cursor: pointer; }
