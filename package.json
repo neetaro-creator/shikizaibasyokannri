@@ -1,0 +1,29 @@
+{
+  "name": "shikizai-3d",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build-db": "tsx scripts/build-db.ts",
+    "predev": "npm run build-db",
+    "dev": "vite",
+    "prebuild": "npm run build-db",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --port 4173 --strictPort",
+    "test": "vitest run",
+    "e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^26.6.5",
+    "@types/papaparse": "^5.5.2",
+    "@types/three": "^0.169.0",
+    "papaparse": "^5.7.0",
+    "three": "^0.169.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vite": "^5.4.21",
+    "vite-plugin-pwa": "^0.20.5",
+    "vitest": "^2.1.9"
+  }
+}
