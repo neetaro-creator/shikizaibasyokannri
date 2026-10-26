@@ -53,7 +53,9 @@ const HOTSPOTS: Record<string, Hotspot> = {
   ...sideSpots('左', -1),
   '車両後部シャッター 上段': { x: TANK.rear, y: (BACK.split + BACK.y1) / 2, z: 0, w: T, h: BACK.y1 - BACK.split - 0.02, d: BACK.z1 - BACK.z0 },
   '車両後部シャッター 下段': { x: TANK.rear, y: (BACK.y0 + BACK.split) / 2, z: 0, w: T, h: BACK.split - BACK.y0 - 0.02, d: BACK.z1 - BACK.z0 },
-  車両上部: { x: (TANK.rear + TANK.bodyFront) / 2, y: TANK.bodyTop, z: 0, w: TANK.bodyFront - TANK.rear - 0.1, h: T, d: TANK.width - 0.1 },
+  // 屋根:左側に三連はしご・鍵付きはしご・とび口、右側に吸管・バスケット担架など
+  '車両上部 左側': { x: (TANK.rear + TANK.bodyFront) / 2, y: TANK.bodyTop, z: -(HALF - 0.05) / 2 - 0.02, w: TANK.bodyFront - TANK.rear - 0.1, h: T, d: HALF - 0.09 },
+  車両上部: { x: (TANK.rear + TANK.bodyFront) / 2, y: TANK.bodyTop, z: (HALF - 0.05) / 2 + 0.02, w: TANK.bodyFront - TANK.rear - 0.1, h: T, d: HALF - 0.09 },
   // キャブ内(運転席は右 +Z、助手席は左 -Z)
   運転席上部: cab(2.9, 2.35, 0.55, 0.6, 0.3, 0.9),
   運転席下部: cab(2.95, 0.95, 0.55, 0.5, 0.3, 0.9),
@@ -146,11 +148,27 @@ export function buildTankTruck(): THREE.Group {
     g.add(box(4.2, 0.035, 0.035, steel, (rear + bodyFront) / 2, bodyTop + 0.22, z));
     for (let x = rear + 0.15; x <= bodyFront; x += 0.8) g.add(box(0.035, 0.22, 0.035, steel, x, bodyTop + 0.11, z));
   }
-  for (const [z, m] of [[0.35, yellow], [-0.15, wood]] as const) {
-    for (const dz of [-0.17, 0.17]) g.add(box(3.9, 0.05, 0.05, m, (rear + bodyFront) / 2 - 0.1, bodyTop + 0.12, z + dz));
-    for (let x = rear + 0.35; x <= bodyFront - 0.3; x += 0.3) g.add(box(0.03, 0.03, 0.34, m, x, bodyTop + 0.12, z));
+  const roofX = (rear + bodyFront) / 2;
+  const ladder = (m: THREE.Material, z: number, len: number) => {
+    for (const dz of [-0.17, 0.17]) g.add(box(len, 0.05, 0.05, m, roofX - 0.1, bodyTop + 0.12, z + dz));
+    for (let x = roofX - len / 2 + 0.2; x <= roofX + len / 2 - 0.3; x += 0.3) g.add(box(0.03, 0.03, 0.34, m, x - 0.1, bodyTop + 0.12, z));
+  };
+  // 左側:三連はしご(黄)・鍵付きはしご(木)・とび口2本
+  ladder(yellow, -0.3, 3.9);
+  ladder(wood, -0.72, 3.3);
+  for (const z of [-0.98, -1.04]) {
+    g.add(box(3.2, 0.035, 0.035, wood, roofX, bodyTop + 0.08, z));
+    g.add(box(0.05, 0.12, 0.035, steel, roofX + 1.6, bodyTop + 0.12, z)); // 鳶口の頭
   }
-
+  // 右側:吸管2本・バスケット担架
+  for (const z of [0.3, 0.5]) {
+    const hose = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 3.4, 16), steel);
+    hose.rotation.z = Math.PI / 2;
+    hose.position.set(roofX - 0.2, bodyTop + 0.09, z);
+    g.add(hose);
+  }
+  const basket = new THREE.MeshStandardMaterial({ color: 0xe8641c, roughness: 0.6 });
+  g.add(span(basket, rear + 0.3, rear + 2.1, bodyTop + 0.03, bodyTop + 0.2, 0.68, 1.02, 0.03)); // バスケット担架
   // ── 後部 ──
   g.add(span(shutter(BACK.y1 - BACK.y0), rear - 0.012, rear + 0.01, BACK.y0, BACK.y1, BACK.z0, BACK.z1));
   g.add(span(dark, rear - 0.03, rear, BACK.y1, BACK.y1 + 0.08, BACK.z0 - 0.02, BACK.z1 + 0.02));

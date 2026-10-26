@@ -41,6 +41,13 @@ describe('信楽タンク1 の 3D', () => {
     expect(l.h).toBeGreaterThan(u.h * 2);
   });
 
+  it('ladders and tobiguchi sit on the left half of the roof, other roof gear on the right', () => {
+    const l = hs('車両上部 左側'), r = hs('車両上部');
+    for (const h of [l, r]) expect(h.y).toBeGreaterThan(TANK.bodyTop - 0.1);
+    expect(l.z + l.d / 2).toBeLessThanOrEqual(0.01);
+    expect(r.z - r.d / 2).toBeGreaterThanOrEqual(-0.01);
+  });
+
   it('searchlight and wheel chocks (車両右側/左側) sit in the gap between cab and body', () => {
     expect(TANK.cabRear - TANK.bodyFront).toBeGreaterThan(0.2);
     for (const [n, sign] of [['車両右側', 1], ['車両左側', -1]] as const) {
