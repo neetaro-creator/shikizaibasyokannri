@@ -343,29 +343,35 @@ function buildInterior(): THREE.Group {
   add(grey, 0.8, 0.95, 0.32, IN.floor, -IN.z, -0.72);
   add(grey, 0.15, 0.3, 0.32, IN.floor, -IN.z, -0.72);
   // 前の仕切り:左に I・J と床置きの K(中は2段)、右に A、上に B、床に気道管理バッグ
-  // J(下)は閉じた箱、I(上)は扉の付いた箱で中に薬剤バッグ
-  add(white, 1.0, 1.25, 1.18, 1.53, -0.84, -0.47);
-  add(dark, 0.995, 1.0, 1.535, 1.545, -0.84, -0.47);
-  add(white, 1.0, 1.25, 1.53, 1.55, -0.84, -0.47); // I の底
-  add(white, 1.0, 1.25, 1.9, 1.92, -0.84, -0.47); // I の天井
-  add(white, 1.23, 1.25, 1.55, 1.9, -0.84, -0.47); // I の奥
-  for (const z of [-0.84, -0.48]) add(white, 1.0, 1.25, 1.55, 1.9, z, z + 0.01);
+  // I(上)と J(下)は同じ作りの吊り戸棚:右(通路側)の縁が蝶番の扉で、中の場所を選ぶと開く
+  const locker = (ch: string, y0: number, y1: number, opensFor: string[]) => {
+    add(white, 1.0, 1.25, y0, y0 + 0.02, -0.84, -0.47); // 底
+    add(white, 1.0, 1.25, y1 - 0.02, y1, -0.84, -0.47); // 天井
+    add(white, 1.23, 1.25, y0, y1, -0.84, -0.47); // 奥
+    for (const z of [-0.84, -0.48]) add(white, 1.0, 1.25, y0, y1, z, z + 0.01);
+    const d = new THREE.Group();
+    d.name = `door-${ch}`;
+    d.position.set(0.995, 0, -0.47);
+    d.userData.opensFor = opensFor;
+    d.userData.openAngle = 1.65;
+    d.add(span(white, -0.015, 0.0, y0, y1, -0.37, 0));
+    d.add(span(mat(0xe8dcc0), -0.025, -0.015, y0 + 0.13, y0 + 0.23, -0.33, -0.26)); // 取っ手
+    const lm = letter(ch);
+    if (lm) {
+      const p = new THREE.Mesh(new THREE.PlaneGeometry(0.07, 0.07), lm);
+      p.position.set(-0.02, y1 - 0.05, -0.05);
+      p.rotation.y = -Math.PI / 2;
+      d.add(p);
+    }
+    inside.add(d);
+  };
+  locker('I', 1.55, 1.9, ['I収納', 'I収納 薬剤バッグ']);
   add(mat(0x2b4f7a), ...BAGS.薬剤, 0.03); // 薬剤バッグ
-  const iDoor = new THREE.Group();
-  iDoor.name = 'door-I';
-  iDoor.position.set(0.995, 0, -0.47); // 右(通路側)の縁が蝶番
-  iDoor.userData.opensFor = ['I収納', 'I収納 薬剤バッグ'];
-  iDoor.userData.openAngle = 1.65;
-  iDoor.add(span(white, -0.015, 0.0, 1.55, 1.9, -0.37, 0));
-  iDoor.add(span(mat(0xe8dcc0), -0.025, -0.015, 1.68, 1.78, -0.33, -0.26)); // 取っ手
-  const il = letter('I');
-  if (il) {
-    const p = new THREE.Mesh(new THREE.PlaneGeometry(0.07, 0.07), il);
-    p.position.set(-0.02, 1.85, -0.05);
-    p.rotation.y = -Math.PI / 2;
-    iDoor.add(p);
-  }
-  inside.add(iDoor);
+  locker('J', 1.18, 1.53, ['J収納']);
+  add(dark, 0.995, 1.0, 1.535, 1.545, -0.84, -0.47); // I と J の境目
+  add(white, 1.04, 1.22, 1.2, 1.32, -0.82, -0.62, 0.01); // マスクの箱
+  add(white, 1.04, 1.22, 1.2, 1.3, -0.6, -0.5, 0.01);
+  add(mat(0xcfe3ef, { transparent: true, opacity: 0.7 }), 1.05, 1.2, 1.34, 1.42, -0.8, -0.52, 0.02); // 感染防止ゴーグル
   // K:箱(前が開く)と中の棚・品。K と仕切りの間に地図の差し込み(K収納後ろ)
   add(white, 0.96, 1.25, 1.03, 1.06, -0.84, -0.5); // 天板(上にバインダー)
   add(dark, 0.98, 1.2, 1.06, 1.08, -0.8, -0.55);
@@ -554,7 +560,7 @@ function buildInterior(): THREE.Group {
 
   // 収納の記号(写真の扉に貼ってある A〜N)
   const labels: [string, number, number, number, 'x' | 'z+' | 'z-'][] = [
-    ['B', 0.94, 1.99, 0.48, 'x'], ['J', 0.99, 1.46, -0.52, 'x'],
+    ['B', 0.94, 1.99, 0.48, 'x'],
     ['C', 1.15, 2.12, 0.595, 'z-'], ['D', 0.86, 1.44, 0.615, 'z-'], ['E', 0.47, 1.0, 0.588, 'z-'], ['F', 0.47, 0.88, 0.588, 'z-'],
     ['G', 0.2, 1.95, 0.695, 'z-'], ['H', -1.85, 1.52, 0.595, 'z-'],
     ['M', -1.45, 2.09, -0.59, 'z+'], ['L', 0.3, 2.09, -0.59, 'z+'], ['N', -1.65, 0.68, -0.495, 'z+'],

@@ -64,6 +64,8 @@ describe('信楽救急1(日産パラメディック)の 3D', () => {
     expect(door.userData.opensFor).not.toContain('A収納扉(表)');
     expect(g.userData.outsideAccess).toEqual(['右スライドドア収納']);
     expect(g.getObjectByName('door-K')!.userData.opensFor).toEqual(['K収納 小児バッグ']);
+    expect(g.getObjectByName('door-I')!.userData.opensFor).toContain('I収納 薬剤バッグ');
+    expect(g.getObjectByName('door-J')!.userData.opensFor).toEqual(['J収納']);
   });
 
   it('things inside a bag light exactly the bag (same box as the 3D bag)', () => {
