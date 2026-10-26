@@ -62,7 +62,6 @@ body {
   padding-bottom: calc(76px + env(safe-area-inset-bottom));
   -webkit-tap-highlight-color: transparent;
 }
-body.sheet-open { overflow: hidden; overscroll-behavior: none; }
 a { color: inherit; }
 :focus-visible { outline: 2px solid var(--hl); outline-offset: 2px; border-radius: 6px; }
 button { font: inherit; color: inherit; }
@@ -237,17 +236,9 @@ body[data-route="vehicle"] main { padding-top: 0; }
   padding: 5px 12px; border-radius: 999px; pointer-events: none;
 }
 .chips button[data-loc].on { background: var(--hl); color: #111; border-color: var(--hl); }
-.sheet {
-  position: fixed; left: 8px; right: 8px; bottom: calc(68px + env(safe-area-inset-bottom)); z-index: 19;
-  max-height: 38vh; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y;
-  background: var(--glass); backdrop-filter: blur(16px) saturate(1.2); -webkit-backdrop-filter: blur(16px) saturate(1.2);
-  border: 1px solid var(--line); border-top: 2px solid var(--hl); border-radius: 18px;
-  box-shadow: var(--shadow), 0 -4px 30px var(--glow); padding: 6px 14px 10px;
-  animation: rise .22s ease-out;
-}
-@keyframes rise { from { transform: translateY(16px); opacity: 0; } }
+.sheet { touch-action: pan-y; }
 .sheet[hidden] { display: none; }
-.sheet-head { display: flex; align-items: center; gap: 8px; position: sticky; top: -6px; padding: 8px 0; background: inherit; }
+.sheet-head { display: flex; align-items: center; gap: 8px; position: sticky; top: -4px; padding: 10px 0 8px; background: var(--bg); border-bottom: 2px solid var(--hl); z-index: 1; }
 .sheet-head > div { flex: 1; min-width: 0; }
 .sheet-head strong { display: block; font-size: 18px; overflow-wrap: anywhere; }
 .sheet .close { flex: none; width: 44px; height: 44px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); font-size: 20px; cursor: pointer; }
@@ -269,10 +260,20 @@ body[data-route="vehicle"] main { padding-top: 0; }
   * { animation: none !important; transition: none !important; }
 }
 
-/* 場所を選んでいる間は3Dを縦に詰め、一覧を広げる(一覧の上端が3Dのすぐ下に来る) */
-body.sheet-open .viewer { height: 30vh; min-height: 200px; }
-body.sheet-open .hud-note, body.sheet-open .hud { display: none; }
-body.sheet-open .sheet { height: calc(70vh - 128px - env(safe-area-inset-bottom)); max-height: none; }
 .sheet .nav { flex: none; width: 40px; height: 44px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); font-size: 24px; line-height: 1; cursor: pointer; }
 .sheet-head strong { font-size: 17px; }
 .sheet a { -webkit-user-drag: none; user-select: none; -webkit-touch-callout: none; }
+
+/* 車両画面:上半分が3D、下半分が場所の一覧/中身。ページ全体はスクロールしない */
+body.vehicle-split { overflow: hidden; overscroll-behavior: none; padding-bottom: 0; }
+body.vehicle-split #app { height: 100dvh; display: flex; flex-direction: column; }
+body.vehicle-split main {
+  flex: 1; min-height: 0; display: flex; flex-direction: column; max-width: none; width: 100%;
+  padding: 0 0 calc(61px + env(safe-area-inset-bottom));
+}
+body.vehicle-split .viewer { flex: 0 0 46%; height: auto; min-height: 0; margin: 0; }
+.pane { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y; padding: 4px 16px 16px; }
+.pane .label { margin-top: 14px; }
+.pane .locrow { width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.pane .align { margin: 10px 0; }
+.viewer.selected .hud, .viewer.selected .hud-note { display: none; }

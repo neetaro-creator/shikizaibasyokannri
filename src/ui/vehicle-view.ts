@@ -8,6 +8,7 @@ import { createScene } from '../three/scene';
 import { disposeObject } from '../three/dispose';
 import { createAlignPanel } from './align-mode';
 import { h, itemHref, vehicleHref } from './dom';
+import { icon } from './icons';
 
 /** 車両 3D と場所一覧。戻り値は後片付け。 */
 export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, align = false): () => void {
@@ -16,12 +17,16 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
   const note = h('p', { class: 'hud-note' }, 'ドラッグで回転 ・ ピンチで拡大 ・ 箱をタップで中身');
   const viewer = h('div', { class: 'viewer', 'data-testid': 'viewer' }, canvas,
     h('div', { class: 'hud' }, h('span', { class: 'kicker' }, v.type), h('h1', {}, v.name)), note);
-  const sheet = h('aside', { class: 'sheet', 'data-testid': 'sheet', 'aria-label': '選んだ場所の積載品', 'aria-live': 'polite', hidden: true });
+  // 下半分:最初は場所の一覧、場所を選ぶと中身(sheet)に切り替わる
+  const sheet = h('section', { class: 'sheet', 'data-testid': 'sheet', 'aria-label': '選んだ場所の積載品', 'aria-live': 'polite', hidden: true });
   const groups = [...new Set(locs.map((l) => l.group))];
-  const chips = groups.map((g) => h('div', {},
+  const listView = h('div', { class: 'loc-list' }, groups.map((g) => h('section', {},
     h('h2', { class: 'label' }, g),
-    h('div', { class: 'chips' }, locs.filter((l) => l.group === g).map((l) =>
-      h('button', { type: 'button', 'data-loc': l.id, onclick: () => select(l.id) }, l.name)))));
+    h('ul', { class: 'loclist' }, locs.filter((l) => l.group === g).map((l) =>
+      h('li', {}, h('button', { type: 'button', class: 'locrow', 'data-loc': l.id, onclick: () => select(l.id) },
+        h('span', { class: 'grow' }, h('span', { class: 'loc-name' }, l.name)),
+        h('span', { class: 'muted' }, `${itemsAt(db, l.id).length}品目`),
+        icon('chevron', 18))))))));
   const panel = align
     ? createAlignPanel((id, hs) => {
         const i = locs.findIndex((l) => l.id === id);
@@ -29,7 +34,9 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
         hotspots?.setHotspot(id, hs);
       })
     : undefined;
-  root.append(...[viewer, panel?.el ?? null, ...chips, sheet].filter((x): x is HTMLElement => x !== null));
+  const pane = h('div', { class: 'pane', 'data-testid': 'pane' }, ...[panel?.el ?? null, listView, sheet].filter((x): x is HTMLElement => x !== null));
+  root.append(viewer, pane);
+  document.body.classList.add('vehicle-split');
 
   let three: ReturnType<typeof createScene> | undefined;
   let hotspots: ReturnType<typeof createHotspots> | undefined;
@@ -69,27 +76,28 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
     hotspots?.highlight(loc?.hotspot ? loc.id : undefined);
     if (hotspots?.highlighted()) viewer.dataset.highlight = loc!.id;
     else delete viewer.dataset.highlight;
+    viewer.classList.toggle('selected', !!loc); // 選択中は車名・操作ヒントを隠して3Dを広く見せる
     if (!loc) {
       sheet.hidden = true;
-      document.body.classList.remove('sheet-open');
+      listView.hidden = false;
       return;
     }
     const contents = itemsAt(db, loc.id);
     sheet.replaceChildren(...[
       h('div', { class: 'sheet-head' },
+        h('button', { type: 'button', class: 'nav', 'aria-label': '場所の一覧へ', onclick: () => select(undefined) }, '≡'),
         h('button', { type: 'button', class: 'nav', 'aria-label': '前の場所', onclick: () => step(-1) }, '‹'),
         h('div', {}, h('span', { class: 'kicker' }, `${v.name.replace(/^信楽/, '')} ${ordered.indexOf(loc) + 1}/${ordered.length} ・ ${contents.length}品目`), h('strong', {}, loc.name)),
-        h('button', { type: 'button', class: 'nav', 'aria-label': '次の場所', onclick: () => step(1) }, '›'),
-        h('button', { type: 'button', class: 'close', 'aria-label': '閉じる', onclick: () => select(undefined) }, '×')),
+        h('button', { type: 'button', class: 'nav', 'aria-label': '次の場所', onclick: () => step(1) }, '›')),
+
       loc.hotspot ? null : h('p', { class: 'muted' }, 'この場所は3D上には表示されません(車外保管など)。'),
       h('ul', { class: 'list' }, contents.map((c) => h('li', {}, h('a', { href: itemHref(c.item.id), class: 'row', draggable: 'false' },
         h('span', { class: 'row-main' }, c.item.name),
         h('span', { class: 'badge' }, c.qty !== undefined ? String(c.qty) : c.qtyNote ?? ''))))),
     ].filter((x): x is HTMLElement => x !== null));
-    if (sheet.hidden) window.scrollTo(0, 0); // 開いたときは3Dが見える位置へ
+    listView.hidden = true;
     sheet.hidden = false;
-    sheet.scrollTop = 0;
-    if (!align) document.body.classList.add('sheet-open'); // 位置合わせモードは下のパネルを使うので背面を止めない
+    pane.scrollTop = 0;
     const center = hotspots?.centerOf(loc.id);
     if (three && center) {
       // 箱の面の向き(側面なら横、後部なら後ろ)から斜め上に引いて見る
@@ -97,8 +105,7 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
       const dir = loc.group === 'キャビン' ? new THREE.Vector3(0.7, 0, 0.9) : new THREE.Vector3(center.x * 0.3, 0, center.z);
       if (dir.lengthSq() < 0.01) dir.set(1, 0, 1);
       dir.normalize().add(new THREE.Vector3(0, 0.6, 0)).normalize();
-      // 下からシートがかぶるので、注視点を下げて箱を画面上寄りに出す
-      const target = center.clone(); // 一覧は3Dの下に出るので、光る箱を画面の中央に置く
+      const target = center.clone(); // 一覧は3Dの下にあるので、光る箱を3Dの中央に置く
       three.flyTo(target.clone().add(dir.multiplyScalar(10)), target);
     }
   }
@@ -195,18 +202,17 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
   });
   // スワイプの指を離したときに、下の品目リンクが押されたことにしない
   sheet.addEventListener('click', (e) => { if (swiped) { e.preventDefault(); e.stopPropagation(); swiped = false; } }, true);
-  // 一覧を開いている間は背面を動かさない:一覧の外、または一覧がスクロール不要のときは指の移動を打ち消す
+  // ページ全体は動かさない:下半分の外、または下半分がスクロール不要のときは指の移動を打ち消す(3D の操作は別のイベント)
   const lockScroll = (e: TouchEvent) => {
-    if (sheet.hidden || align) return;
-    const inSheet = sheet.contains(e.target as Node);
-    if (!inSheet || sheet.scrollHeight <= sheet.clientHeight) e.preventDefault();
+    const inPane = pane.contains(e.target as Node);
+    if (!inPane || pane.scrollHeight <= pane.clientHeight) e.preventDefault();
   };
   document.addEventListener('touchmove', lockScroll, { passive: false });
 
   return () => {
     document.removeEventListener('touchmove', lockScroll);
     disposed = true;
-    document.body.classList.remove('sheet-open');
+    document.body.classList.remove('vehicle-split');
     three?.dispose();
     delete (window as unknown as Record<string, unknown>).__shikizai3d;
   };

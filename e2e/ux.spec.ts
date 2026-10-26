@@ -17,7 +17,7 @@ test('一覧を開いたままでも、‹ で末尾の場所へ移れる(× で
   await expect(page.getByTestId('sheet')).toBeVisible();
   await page.getByRole('button', { name: '前の場所' }).click(); // 先頭から ‹ で末尾へ
   await expect(page).toHaveURL(new RegExp(`loc=${last}`));
-  await page.getByRole('button', { name: '閉じる' }).click();
+  await page.getByRole('button', { name: '場所の一覧へ' }).click();
   await buttons.first().click({ timeout: 3000 });
   await expect(buttons.first()).toHaveClass(/on/);
 });

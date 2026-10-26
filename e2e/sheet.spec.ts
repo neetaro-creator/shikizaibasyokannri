@@ -8,25 +8,46 @@ const open = async (page: import('@playwright/test').Page, loc: string) => {
 const order = (page: import('@playwright/test').Page) =>
   page.locator('[data-loc]').evaluateAll((els) => els.map((e) => (e as HTMLElement).dataset.loc!));
 
-test('場所を選ぶと3Dは縦に詰まり、一覧が画面の半分近くまで広がる', async ({ page }) => {
-  await open(page, 'tank1-l21');
+test('車両画面は上半分が3D、下半分が一覧で重ならない(ポップアップなし)', async ({ page }) => {
+  await page.goto('./#/vehicle/tank1');
+  await expect(page.getByTestId('viewer')).toHaveAttribute('data-ready', 'true');
   const vh = await page.evaluate(() => window.innerHeight);
   const viewer = (await page.getByTestId('viewer').boundingBox())!;
-  const sheet = (await page.getByTestId('sheet').boundingBox())!;
-  expect(viewer.height).toBeLessThan(vh * 0.4);
-  expect(sheet.height).toBeGreaterThan(vh * 0.45); // 品目が少なくても一覧の枠は広い
-  expect(sheet.y - (viewer.y + viewer.height)).toBeLessThan(16); // 一覧の上端は3Dのすぐ下
+  const pane = (await page.getByTestId('pane').boundingBox())!;
+  const tabs = (await page.locator('nav.tabs').boundingBox())!;
+  expect(viewer.height).toBeGreaterThan(vh * 0.3);
+  expect(viewer.height).toBeLessThan(vh * 0.55);
+  expect(Math.abs(pane.y - (viewer.y + viewer.height))).toBeLessThan(2);
+  expect(pane.y + pane.height).toBeLessThanOrEqual(tabs.y + 1);
+  expect(pane.height).toBeGreaterThan(vh * 0.3);
+  await expect(page.locator('[data-loc]').first()).toBeVisible(); // 最初は場所の一覧
+  await expect(page.getByTestId('sheet')).toBeHidden();
 });
 
-test('一覧を開いている間は背面がスクロールしない(一覧の外のスワイプは打ち消す)', async ({ page }) => {
+test('一覧の場所を押すと下半分が中身に切り替わり、≡ で場所の一覧に戻る', async ({ page }) => {
+  await page.goto('./#/vehicle/tank1');
+  await expect(page.getByTestId('viewer')).toHaveAttribute('data-ready', 'true');
+  await page.locator('[data-loc="tank1-l21"]').click();
+  await expect(page.getByTestId('sheet')).toBeVisible();
+  await expect(page.getByTestId('sheet')).toContainText('吸管スパナ');
+  await expect(page.locator('[data-loc="tank1-l21"]')).toBeHidden();
+  await expect(page.getByTestId('viewer')).toHaveAttribute('data-highlight', 'tank1-l21');
+  await page.getByRole('button', { name: '場所の一覧へ' }).click();
+  await expect(page.locator('[data-loc="tank1-l21"]')).toBeVisible();
+  await expect(page.getByTestId('viewer')).not.toHaveAttribute('data-highlight', /.+/);
+  await expect(page).not.toHaveURL(/loc=/);
+});
+
+test('車両画面はページ全体がスクロールせず、下半分の外のスワイプは打ち消す', async ({ page }) => {
   await open(page, 'tank1-l21');
+  expect(await page.evaluate(() => document.scrollingElement!.scrollHeight - window.innerHeight)).toBeLessThanOrEqual(1);
   const prevented = await page.evaluate(() => {
     const ev = new TouchEvent('touchmove', { cancelable: true, bubbles: true, touches: [] });
     document.querySelector('header')!.dispatchEvent(ev);
     return ev.defaultPrevented;
   });
   expect(prevented).toBe(true);
-  expect(await page.getByTestId('sheet').evaluate((e) => getComputedStyle(e).overscrollBehaviorY)).toBe('contain');
+  expect(await page.getByTestId('pane').evaluate((e) => getComputedStyle(e).overscrollBehaviorY)).toBe('contain');
 });
 
 test('一覧を左右にスワイプすると次/前の場所が光る', async ({ page }) => {
@@ -42,7 +63,7 @@ test('一覧を左右にスワイプすると次/前の場所が光る', async (
     await page.mouse.up();
   };
   await swipe(sheet.x + sheet.width * 0.8, sheet.x + sheet.width * 0.2); // 左へ → 次
-  await expect(page.getByTestId('sheet')).toContainText(await page.locator(`[data-loc="${ids[i + 1]}"]`).innerText());
+  await expect(page).toHaveURL(new RegExp(`loc=${ids[i + 1]}$`));
   await swipe(sheet.x + sheet.width * 0.2, sheet.x + sheet.width * 0.8); // 右へ → 前
   await expect(page.getByTestId('viewer')).toHaveAttribute('data-highlight', ids[i]);
 });

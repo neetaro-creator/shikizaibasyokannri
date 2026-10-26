@@ -42,7 +42,7 @@ test('キャブ内の場所を選ぶと車体が透けて中が見え、外の�
   await page.goto('./#/vehicle/tank1?loc=tank1-l08');
   await expect(page.getByTestId('viewer')).toHaveAttribute('data-ready', 'true');
   await expect(page.getByTestId('viewer')).toHaveAttribute('data-xray', 'true');
-  await page.getByRole('button', { name: '閉じる' }).click();
+  await page.getByRole('button', { name: '場所の一覧へ' }).click();
   await page.getByRole('button', { name: '車両右側前部シャッター' }).click();
   await expect(page.getByTestId('viewer')).not.toHaveAttribute('data-xray', 'true');
 });
