@@ -194,17 +194,34 @@ export function buildCommandCar(): THREE.Group {
       g.add(l);
     }
   }
-  // グリル:左右のライトの間。上の縁にメッキ、中は黒い格子
-  g.add(lamp(black, 0.88, 0.12, -0.44, 0.44));
-  g.add(lamp(steel, 0.945, 0.025, -0.44, 0.44));
-  g.add(lamp(steel, 0.86, 0.012, -0.42, 0.42));
-  // エンブレム:ボンネットの下の縁の中央
-  { const e = box(0.02, 0.07, 0.11, steel, fx - 0.085, 1.01, 0); e.rotation.z = 0.6; g.add(e); }
-  // バンパー:中央に大きな黒い開口、その下にナンバー、外の角にフォグ(ここでは赤色灯)
-  g.add(span(black, fx - 0.03, fx + 0.02, 0.5, 0.68, -0.48, 0.48));
-  for (const y of [0.56, 0.62]) g.add(span(dark, fx + 0.015, fx + 0.025, y, y + 0.012, -0.46, 0.46));
-  g.add(span(steel, fx + 0.015, fx + 0.025, 0.37, 0.49, -0.17, 0.17)); // ナンバー
-  for (const s of [1, -1]) g.add(span(redLamp, fx - 0.03, fx + 0.015, 0.42, 0.5, s * 0.6, s * 0.7)); // 前面の赤色灯(フォグの位置)
+  // グリル(写真:上の縁のメッキは中央だけ一段持ち上がってエンブレムの下に回る。中は黒い格子で中央は黒い板。
+  // 下の縁にもう1本、ライトの下端の高さで横いっぱいのメッキ)
+  const plate = (pts: [number, number][], m: THREE.Material, out = 0.012) => {
+    const geo = new THREE.ExtrudeGeometry(new THREE.Shape(pts.map(([z, y]) => new THREE.Vector2(z, y))), { depth: 0.012, bevelEnabled: false });
+    geo.rotateY(Math.PI / 2); // 形の (z, y) を正面の面に。押し出しは +X
+    const mesh = new THREE.Mesh(geo, m);
+    mesh.position.x = faceX(0.89) + out - 0.012;
+    return mesh;
+  };
+  const chrome = new THREE.MeshStandardMaterial({ color: 0xe6eaee, roughness: 0.25, metalness: 0.35 }); // 環境マップが無いので金属感は控えめにして明るく見せる
+  const sym = (half: [number, number][]) => [...half, ...[...half].reverse().map(([z, y]) => [-z, y] as [number, number])];
+  g.add(plate(sym([[-0.45, 0.83], [-0.45, 0.955], [-0.19, 0.955], [-0.13, 0.99]]), black, 0)); // 黒い地
+  for (const y of [0.865, 0.9, 0.93]) g.add(lamp(dark, y, 0.01, -0.43, 0.43)); // 格子の横桟
+  g.add(lamp(black, 0.885, 0.07, -0.13, 0.13)); // 中央の黒い板
+  g.add(plate(sym([[-0.45, 0.95], [-0.2, 0.95], [-0.14, 0.983], [-0.14, 1.0], [-0.2, 0.968], [-0.45, 0.968]]), chrome, 0.018)); // 上のメッキ
+  g.add(plate(sym([[-0.46, 0.815], [-0.46, 0.835]]), chrome, 0.02)); // 下のメッキ
+  // エンブレム:持ち上がったメッキのすぐ上、ボンネットの下の縁の中央
+  { const e = box(0.02, 0.065, 0.11, chrome, fx - 0.088, 1.035, 0); e.rotation.z = 0.7; g.add(e); }
+  // バンパー:ボディ色で背が高い。中央に横長の大きな黒い開口(中に横桟)、ナンバーはその下の縁にかかる。
+  // 外の角にフォグの凹み(ここでは赤色灯)、いちばん下に細い黒いスリット
+  g.add(span(black, fx - 0.03, fx + 0.02, 0.5, 0.7, -0.5, 0.5));
+  for (const y of [0.56, 0.62]) g.add(span(dark, fx + 0.015, fx + 0.025, y, y + 0.014, -0.48, 0.48));
+  g.add(span(new THREE.MeshStandardMaterial({ color: 0xf4f4f2, roughness: 0.6 }), fx + 0.02, fx + 0.03, 0.42, 0.55, -0.18, 0.18)); // ナンバー(白)
+  for (const s of [1, -1]) {
+    g.add(span(black, fx - 0.03, fx + 0.016, 0.4, 0.53, s * 0.57, s * 0.74)); // フォグの凹み
+    g.add(span(redLamp, fx - 0.03, fx + 0.022, 0.42, 0.51, s * 0.6, s * 0.71)); // 前面の赤色灯(フォグの位置)
+  }
+  g.add(span(black, fx - 0.03, fx + 0.012, 0.35, 0.37, -0.42, 0.42)); // 下の細いスリット
   g.add(span(dark, fx - 0.3, fx - 0.03, 0.27, 0.31, -HALF + 0.1, HALF - 0.1)); // バンパー下のスポイラー
 
   // ── 屋根の赤色灯(前寄りに横長) ──
