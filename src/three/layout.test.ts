@@ -17,6 +17,6 @@ it('vehicle model layout is used when CSV has none', () => {
 });
 
 it('falls back to the automatic layout for other vehicle types and unknown names', () => {
-  expect(resolveHotspots([loc('車両右側', '右側')], 'タンク')[0].hotspot).toBeDefined();
+  expect(resolveHotspots([loc('車両右側', '右側')], '指揮')[0].hotspot).toBeDefined();
   expect(resolveHotspots([loc('どこか', '車外保管')], 'ポンプ')[0].hotspot).toBeUndefined();
 });

@@ -90,6 +90,14 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
       if (disposed) return disposeObject(object);
       vehicleObject = object;
       s.scene.add(object);
+      // 車両の大きさに合わせて初期カメラを引く(場所を指定して開いたときはその場所へ寄る)
+      if (!focus) {
+        const b = new THREE.Box3().setFromObject(object);
+        const size = b.getSize(new THREE.Vector3());
+        const c = b.getCenter(new THREE.Vector3());
+        s.camera.position.copy(c).add(new THREE.Vector3(1, 0.55, 1.1).normalize().multiplyScalar(size.length() * 1.4));
+        s.controls.target.set(c.x, size.y * 0.42, c.z);
+      }
       if (fallback) note.textContent = '3Dモデルを読み込めなかったため、簡易モデルで表示しています。';
       viewer.dataset.ready = 'true';
     });

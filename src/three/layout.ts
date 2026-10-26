@@ -1,10 +1,12 @@
 import type { Hotspot, Location } from '../data/types';
 import { pumpHotspot } from './models/pump';
+import { tankHotspot } from './models/tank';
 import { defaultHotspot } from './placeholder';
 
 /** 車種ごとの作り込みモデルが持つ場所の配置。 */
 const MODEL_LAYOUTS: Record<string, (name: string) => Hotspot | undefined> = {
   ポンプ: pumpHotspot,
+  タンク: tankHotspot,
 };
 
 /** 場所の箱の位置を決める。優先順:CSV の hotspot > 車種モデルの配置 > 自動配置。 */

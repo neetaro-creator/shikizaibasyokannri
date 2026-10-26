@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import type { Hotspot, Location } from '../data/types';
 import { buildPumpTruck, PUMP } from './models/pump';
+import { buildTankTruck, TANK } from './models/tank';
 
 /** 車両の寸法[m]。前方 +X、上 +Y、右 +Z、地面 y=0、全長の中心が x=0。 */
 export const DIMENSIONS: Record<string, { length: number; width: number; height: number; cab: number; body: number; color: number }> = {
-  タンク: { length: 7.0, width: 2.3, height: 3.0, cab: 2.2, body: 2.6, color: 0xc8102e },
+  タンク: { length: TANK.length, width: TANK.width, height: 3.0, cab: TANK.front - TANK.cabRear, body: TANK.bodyTop, color: 0xc8102e },
   ポンプ: { length: PUMP.length, width: PUMP.width, height: 2.9, cab: PUMP.front - PUMP.cabRear, body: PUMP.bodyTop, color: 0xc8102e },
   指揮: { length: 4.7, width: 1.8, height: 2.0, cab: 1.6, body: 1.9, color: 0xc8102e },
   救急: { length: 5.6, width: 1.9, height: 2.5, cab: 1.5, body: 2.5, color: 0xf4f4f4 },
@@ -15,6 +16,7 @@ const FLOOR = 0.55; // 荷台の下端(タイヤ上)
 /** 仮モデル:キャブ・ボディ・タイヤを箱と円柱で組む。 */
 export function buildPlaceholder(type: string): THREE.Group {
   if (type === 'ポンプ') return buildPumpTruck();
+  if (type === 'タンク') return buildTankTruck();
   const d = dims(type);
   const g = new THREE.Group();
   const paint = new THREE.MeshStandardMaterial({ color: d.color, roughness: 0.45, metalness: 0.1 });
