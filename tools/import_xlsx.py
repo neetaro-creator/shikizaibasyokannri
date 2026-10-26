@@ -1,6 +1,7 @@
 """点検表(xlsx)から資器材 CSV の下書きを作る。
 
-使い方: python3 tools/import_xlsx.py <xlsxのあるディレクトリ> <出力ディレクトリ>
+使い方: python3 tools/import_xlsx.py <xlsxのあるディレクトリ> <出力ディレクトリ> [--existing <今のdata>]
+  --existing を付けると、同じ品名・場所名には今と同じ番号を使い、手入力した欄を引き継ぐ(点検表の改訂時はこれを使う)。
 
 帳票は「品名列+数量列」の列帯が横に並ぶ。列帯ごとに上から読み、
 数量のない見出しで場所を更新し、品名+数量を在庫行にする。
@@ -126,6 +127,49 @@ class Builder:
         self.stock[(iid, lid)] = (qty, note)
 
 
+def read_band_by_rows(b, v, ws, band, tcols, qcols):
+    """場所の範囲を行で明示した列帯を読む(縦書きラベルが品目の上下中央に書かれた様式用)。
+
+    band["locations"] = [[開始行, 終了行, 場所名], ...]
+    band["merge"] = [[開始行, 終了行], ...]  … 1品目が複数行に折り返している行をまとめる
+    """
+    vid = v["id"]
+    merged = {a: z for a, z in band.get("merge", [])}
+    inside = {r for a, z in band.get("merge", []) for r in range(a + 1, z + 1)}
+    for r0, r1, loc in band["locations"]:
+        loc = loc_clean(loc) if " " not in loc else " ".join(loc_clean(x) for x in loc.split(" "))
+        for r in range(r0, r1 + 1):
+            if r in inside:
+                continue
+            group = range(r, merged.get(r, r) + 1)
+            texts = []
+            for c in tcols:
+                raw = [ws.cell(g, c).value for g in group if ws.cell(g, c).value is not None]
+                t = clean("\n".join(str(x) for x in raw)) if raw else ""
+                if t:
+                    texts.append((c, t))
+            qcells = [ws.cell(g, c).value for g in group for c in qcols if ws.cell(g, c).value is not None]
+            if not texts:
+                continue
+            qty, note, insp = parse_qty(qcells)
+            has_qty = bool(qty or note or insp)
+            name = texts[-1][1]  # 縦書きラベルの文字は品名より左にある
+            if not has_qty and HEADING.search(loc_clean(name)):
+                continue  # 見出し行
+            if len(name) <= 2 and not qty:
+                continue  # 縦書きラベルの文字だけの行(「斧」のように数のある品目は残す)
+            cell = f"R{r}"
+            if any(key(name).startswith(key(n)) for n in NOT_ITEMS):
+                b.review.append([vid, v["sheet"], cell, name, "not_item"])
+                continue
+            if not has_qty:
+                note = "数量記載なし"
+                b.review.append([vid, v["sheet"], cell, name, "noqty"])
+            if insp:
+                b.review.append([vid, v["sheet"], cell, f"{name} [{' '.join(insp)}]", "inspection"])
+            b.add(vid, loc, name, qty, note)
+
+
 def read_vehicle(b, v, src):
     wb = openpyxl.load_workbook(src / v["file"], data_only=True)
     ws = wb[v["sheet"]]
@@ -134,6 +178,9 @@ def read_vehicle(b, v, src):
     for band in v["bands"]:
         tcols, qcols = col_range(band["text"]), col_range(band["qty"])
         rows = [r for a, z in band["rows"] for r in range(a, z + 1)]
+        if "locations" in band:
+            read_band_by_rows(b, v, ws, band, tcols, qcols)
+            continue
         vlabels = vertical_runs(ws, tcols, rows)
         vcells = {(r, c) for r, lst in vlabels.items() for c, _ in lst}
         major = loc_clean(band["start"]) if band.get("start") else ""
@@ -215,8 +262,58 @@ def pick(rules, text, default):
     return default
 
 
+def read_csv(path):
+    with open(path, encoding="utf-8") as f:
+        return list(csv.DictReader(f))
+
+
+def keep_existing(b, existing):
+    """既存の data/ と同じ品名・場所名には同じ番号を振り直し、手入力した欄(位置・写真・通称・分類)を引き継ぐ。"""
+    old_items = {key(r["name"]): r for r in read_csv(existing / "items.csv")}
+    old_locs = {(r["vehicle_id"], r["name"]): r for r in read_csv(existing / "locations.csv")}
+    next_item = max(int(r["item_id"][1:]) for r in old_items.values()) + 1
+    item_map, items = {}, {}
+    for k, (iid, name) in b.items.items():
+        if k in old_items:
+            new = old_items[k]["item_id"]
+        else:
+            new, next_item = f"i{next_item:04d}", next_item + 1
+        item_map[iid] = new
+        items[k] = (new, name)
+    loc_map, locs = {}, {}
+    next_loc = {}
+    for (vid, _), r in old_locs.items():
+        next_loc[vid] = max(next_loc.get(vid, 0), int(r["location_id"].split("-l")[1]))
+    renamed = CONFIG.get("renamed_locations", {})
+    for (vid, name), lid in b.locations.items():
+        before = renamed.get(vid, {}).get(name)  # 点検表で改名された場所は旧名の番号を使う
+        if (vid, name) not in old_locs and before and (vid, before) in old_locs:
+            old_locs[(vid, name)] = old_locs.pop((vid, before))
+        if (vid, name) in old_locs:
+            new = old_locs[(vid, name)]["location_id"]
+        else:
+            next_loc[vid] = next_loc.get(vid, 0) + 1
+            new = f"{vid}-l{next_loc[vid]:02d}"
+        loc_map[lid] = new
+        locs[(vid, name)] = new
+    b.items, b.locations = items, locs
+    b.stock = {(item_map[i], loc_map[l]): v for (i, l), v in b.stock.items()}
+    b.kept_items, b.kept_locs = old_items, old_locs
+
+
 def write(b, out):
     out.mkdir(parents=True, exist_ok=True)
+    kept_items, kept_locs = getattr(b, "kept_items", {}), getattr(b, "kept_locs", {})
+    def loc_row(lid, vid, name):
+        o = kept_locs.get((vid, name))
+        if o:
+            return [lid, vid, name, o["group"], o["hotspot"], o["photo"]]
+        return [lid, vid, name, pick(CONFIG["location_groups"], name, CONFIG["default_group"]), "", ""]
+    def item_row(iid, name):
+        o = kept_items.get(key(name))
+        if o:
+            return [iid, name, o["aliases"], o["category"], o["photo"], o["model"]]
+        return [iid, name, reading(name), pick(CONFIG["categories"], name, CONFIG["default_category"]), "", ""]
     def w(name, header, rows):
         with open(out / name, "w", encoding="utf-8", newline="") as f:
             cw = csv.writer(f)
@@ -225,24 +322,30 @@ def write(b, out):
     w("vehicles.csv", ["vehicle_id", "name", "type", "model"],
       [[v["id"], v["name"], v["type"], ""] for v in b.vehicles])
     w("locations.csv", ["location_id", "vehicle_id", "name", "group", "hotspot", "photo"],
-      [[lid, vid, name, pick(CONFIG["location_groups"], name, CONFIG["default_group"]), "", ""]
-       for (vid, name), lid in b.locations.items()])
+      [loc_row(lid, vid, name) for (vid, name), lid in b.locations.items()])
     w("items.csv", ["item_id", "name", "aliases", "category", "photo", "model"],
-      [[iid, name, reading(name), pick(CONFIG["categories"], name, CONFIG["default_category"]), "", ""]
-       for iid, name in b.items.values()])
+      [item_row(iid, name) for iid, name in b.items.values()])
     w("stock.csv", ["item_id", "location_id", "qty", "qty_note"],
       [[iid, lid, q, n] for (iid, lid), (q, n) in b.stock.items()])
     w("review.csv", ["vehicle_id", "sheet", "cell", "raw", "reason"], b.review)
 
 
-def main(src, out):
+def main(src, out, existing=None):
     b = Builder()
     for v in CONFIG["vehicles"]:
         read_vehicle(b, v, Path(src))
+    if existing:
+        keep_existing(b, Path(existing))
     write(b, Path(out))
     print(f"vehicles={len(b.vehicles)} locations={len(b.locations)} items={len(b.items)} "
           f"stock={len(b.stock)} review={len(b.review)}")
 
 
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2])
+    args = sys.argv[1:]
+    existing = None
+    if "--existing" in args:
+        i = args.index("--existing")
+        existing = args[i + 1]
+        del args[i:i + 2]
+    main(args[0], args[1], existing)

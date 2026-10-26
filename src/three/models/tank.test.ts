@@ -63,7 +63,7 @@ describe('信楽タンク1 の 3D', () => {
 
   it('driver side is right (+Z), passenger side left (-Z), all cab spots inside the cab', () => {
     expect(hs('運転席上部').z).toBeGreaterThan(0);
-    expect(hs('助手席').z).toBeLessThan(0);
+    expect(hs('助手席 前').z).toBeLessThan(0);
     for (const n of names.filter((x) => /運転席|助手席|後部座席|コンソール|キャビン|空気呼吸器/.test(x))) {
       expect(hs(n).x, n).toBeGreaterThan(TANK.cabRear);
       expect(hs(n).x, n).toBeLessThan(TANK.front);
@@ -72,7 +72,7 @@ describe('信楽タンク1 の 3D', () => {
 
   it('cab interior follows the photos: SCBA wall at the back, boxes hang behind the front seats', () => {
     const scba = hs('キャビン後部'), netBack = hs('後部座席上部(後)'), netFront = hs('後部座席上部(前)');
-    const cam = hs('後部座席上部(前) デジカメBOX'), survey = hs('後部座席上部(前) 現調用BOX');
+    const cam = hs('後部座席上部(前) カメラBOX'), survey = hs('後部座席上部(前) 現調用BOX');
     expect(scba.x).toBeLessThan(1.4); // 後ろの壁ぎわ
     expect(netBack.x).toBeLessThan(netFront.x);
     expect(netFront.z).toBeLessThan(0); // 左の網棚
@@ -81,6 +81,14 @@ describe('信楽タンク1 の 3D', () => {
       expect(b.x).toBeGreaterThan(netBack.x);
     }
     expect(cam.z).toBeGreaterThan(survey.z - 0.5);
+  });
+
+  it('後席前方 sits between the rear bench and the front seats; 前席中央 is above the console', () => {
+    const between = hs('後席前方'), console = hs('中央コンソールボックス'), docs = hs('前席中央');
+    expect(between.x).toBeGreaterThan(hs('キャビン後部').x);
+    expect(between.x).toBeLessThan(console.x);
+    expect(docs.y).toBeGreaterThan(console.y);
+    expect(Math.abs(docs.z)).toBeLessThan(0.3);
   });
 
   it('cab interior hotspots do not overlap each other', () => {

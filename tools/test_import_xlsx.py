@@ -79,3 +79,49 @@ def test_kanji_names_get_hiragana_reading(out):
     assert "おの" in by_name["斧"]
     assert "べんけい" in by_name["弁慶"]
     assert by_name["カラビナ"] == [""]  # 漢字を含まない品には付けない
+
+
+def test_tank1_r8_10_26_new_locations(out):
+    assert ("後席前方", "4", "") in rows(out, "tank1", "夜行チョッキ(T機、P機含む)")
+    assert ("前席中央", "2", "") in rows(out, "tank1", "ハンドメガホン")
+    assert ("キャビン後部", "4", "") in rows(out, "tank1", "空気呼吸器")
+    assert ("後部座席上部(後)", "", "一式") in rows(out, "tank1", "マルチガス検知器 (本体、ホース8m、1m)")
+    assert ("後部座席上部(前) カメラBOX", "1", "") in rows(out, "tank1", "デジタル一眼レフカメラ(レンズ含む)")
+
+
+def test_tank1_roof_split_kept(out):
+    assert ("車両上部 左側", "1", "") in rows(out, "tank1", "三連はしご")
+    assert ("車両上部", "2", "") in rows(out, "tank1", "吸管")
+
+
+def test_tank1_no_vertical_label_fragments(out):
+    names = {r["name"] for r in out["locations"] if r["vehicle_id"] == "tank1"}
+    assert all(len(n) > 2 for n in names), names
+    tank_items = {out["item"][s["item_id"]]["name"] for s in out["stock"] if out["loc"][s["location_id"]]["vehicle_id"] == "tank1"}
+    assert not [n for n in tank_items if len(n) <= 1 and n not in ("斧",)]
+
+
+def test_existing_ids_are_kept(tmp_path):
+    existing = ROOT / "data"
+    subprocess.run([sys.executable, str(ROOT / "tools/import_xlsx.py"), str(ROOT / "tools/fixtures"), str(tmp_path),
+                    "--existing", str(existing)], check=True)
+    def by(path, key, val):
+        with open(path, encoding="utf-8") as f:
+            return {r[key]: r[val] for r in csv.DictReader(f)}
+    old_items, new_items = by(existing / "items.csv", "name", "item_id"), by(tmp_path / "items.csv", "name", "item_id")
+    assert new_items["カラビナ"] == old_items["カラビナ"]
+    assert new_items["三連はしご"] == old_items["三連はしご"]
+    with open(tmp_path / "locations.csv", encoding="utf-8") as f:
+        locs = {(r["vehicle_id"], r["name"]): r["location_id"] for r in csv.DictReader(f)}
+    assert locs[("tank1", "車両上部 左側")] == "tank1-l29"
+    assert locs[("pump1", "車両右側前シャッター内")] == "pump1-l05"
+    new_ids = [v for k, v in locs.items() if k[1] in ("後席前方", "前席中央")]
+    assert all(int(i.split("-l")[1]) > 29 for i in new_ids if i.startswith("tank1"))
+
+
+def test_renamed_location_keeps_its_id(tmp_path):
+    subprocess.run([sys.executable, str(ROOT / "tools/import_xlsx.py"), str(ROOT / "tools/fixtures"), str(tmp_path),
+                    "--existing", str(ROOT / "data")], check=True)
+    with open(tmp_path / "locations.csv", encoding="utf-8") as f:
+        locs = {(r["vehicle_id"], r["name"]): r["location_id"] for r in csv.DictReader(f)}
+    assert locs[("tank1", "後部座席上部(前) カメラBOX")] == "tank1-l08"

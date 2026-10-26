@@ -24,7 +24,11 @@
 - `items.csv` の `aliases` には、漢字の品名のひらがな読みを自動で入れてあります(読み違いは直してください)。
 - `data/review.csv` は、点検表からの初回変換で自信がなかった行の一覧です。`sheet2_only` は救急1の点検表の別シートにだけ載っている品で、今の積載に含めるか確認が必要です。実物と照合して CSV を直してください(照合後は削除して構いません)。
 
-点検表(Excel)が改訂されたときは、新しい Excel を渡してもらえれば差分を CSV に反映します。初回変換のスクリプトは `tools/import_xlsx.py`(列の配置は `tools/import_config.json`)。
+点検表(Excel)が改訂されたときは、新しい Excel を渡してもらえれば差分を CSV に反映します。
+
+- 取り込みは `tools/import_xlsx.py`、列の配置と「何行目がどの場所か」は `tools/import_config.json`。
+- 改訂時は `python3 tools/import_xlsx.py tools/fixtures data --existing data` で取り込む。同じ品名・場所名には今と同じ番号が付き、手入力した欄(3D の位置・写真・通称・分類)は引き継がれる。点検表で改名された場所は `renamed_locations` に書けば番号を引き継ぐ。
+- 信楽タンク1(R8.10.26 版〜)は場所名が縦書きで品目の上下中央にあるため、行と場所の対応を設定に明記している。様式が変わったらここを直す。
 
 ## 3D モデル
 

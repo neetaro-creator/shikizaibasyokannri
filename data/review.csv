@@ -3,15 +3,13 @@ tank1,Sheet1,R8,各スイッチ,not_item
 tank1,Sheet1,R23,冷却水フィルター用レンチ及びパイプ,not_item
 tank1,Sheet1,R27,ライト(FIRE VULCAN LED) [点灯状況],inspection
 tank1,Sheet1,R47,ライト(FIRE VULCAN LED) [点灯状況],inspection
-tank1,Sheet1,S:AB@7,キャビン後部,start_inferred
-tank1,Sheet1,R15,空気呼吸器圧力確認,not_item
-tank1,Sheet1,R24,サーチライト [点灯状況],inspection
-tank1,Sheet1,R27,e-モニタ液晶画面,not_item
-tank1,Sheet1,R28,冷却水フィルター,not_item
+tank1,Sheet1,R14,空気呼吸器圧力確認,not_item
+tank1,Sheet1,R23,サーチライト [点灯状況],inspection
+tank1,Sheet1,R26,e-モニタ液晶画面,not_item
+tank1,Sheet1,R27,冷却水フィルター,not_item
 tank1,Sheet1,R3,サーチライト [作動状況],inspection
 tank1,Sheet1,R5,セパレーターレシーバータンク (水分混入),not_item
 tank1,Sheet1,R8,e-モニタ液晶画面,not_item
-tank1,Sheet1,BI:BR@2,車両後部シャッター,start_inferred
 tank1,Sheet1,R4,可搬ポンプ(第3点検日稼働試験) [燃料満量],inspection
 pump1,Sheet1,R9,サイレンアンプ,not_item
 pump1,Sheet1,R10,真空ポンプ,not_item
