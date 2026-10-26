@@ -206,15 +206,18 @@ export function buildCommandCar(): THREE.Group {
   const chrome = new THREE.MeshStandardMaterial({ color: 0xe6eaee, roughness: 0.25, metalness: 0.35 }); // 環境マップが無いので金属感は控えめにして明るく見せる
   const sym = (half: [number, number][]) => [...half, ...[...half].reverse().map(([z, y]) => [-z, y] as [number, number])];
   g.add(plate(sym([[-0.45, 0.83], [-0.45, 0.955], [-0.19, 0.955], [-0.13, 0.99]]), black, 0)); // 黒い地
+  // グリルはバンパーの中央まで食い込む(バンパーは凹の形:両端だけライトの下まで上がり、真ん中はグリルの黒が下の開口までつながる)
+  g.add(span(black, fx - 0.03, fx + 0.004, 0.69, 0.84, -0.44, 0.44));
+  for (const y of [0.73, 0.77]) g.add(span(dark, fx + 0.002, fx + 0.008, y, y + 0.01, -0.42, 0.42)); // 食い込んだ部分の横桟
   for (const y of [0.865, 0.9, 0.93]) g.add(lamp(dark, y, 0.01, -0.43, 0.43)); // 格子の横桟
   g.add(lamp(black, 0.885, 0.07, -0.13, 0.13)); // 中央の黒い板
   g.add(plate(sym([[-0.45, 0.95], [-0.2, 0.95], [-0.14, 0.983], [-0.14, 1.0], [-0.2, 0.968], [-0.45, 0.968]]), chrome, 0.018)); // 上のメッキ
-  g.add(plate(sym([[-0.46, 0.815], [-0.46, 0.835]]), chrome, 0.02)); // 下のメッキ
+  g.add(span(chrome, fx + 0.004, fx + 0.016, 0.815, 0.835, -0.44, 0.44)); // 下のメッキ(食い込んだ黒の上に載る)
   // エンブレム:持ち上がったメッキのすぐ上、ボンネットの下の縁の中央
   { const e = box(0.02, 0.065, 0.11, chrome, fx - 0.088, 1.035, 0); e.rotation.z = 0.7; g.add(e); }
   // バンパー:ボディ色で背が高い。中央に横長の大きな黒い開口(中に横桟)、ナンバーはその下の縁にかかる。
   // 外の角にフォグの凹み(ここでは赤色灯)、いちばん下に細い黒いスリット
-  g.add(span(black, fx - 0.03, fx + 0.02, 0.5, 0.7, -0.5, 0.5));
+  g.add(span(black, fx - 0.03, fx + 0.02, 0.5, 0.69, -0.5, 0.5));
   for (const y of [0.56, 0.62]) g.add(span(dark, fx + 0.015, fx + 0.025, y, y + 0.014, -0.48, 0.48));
   g.add(span(new THREE.MeshStandardMaterial({ color: 0xf4f4f2, roughness: 0.6 }), fx + 0.02, fx + 0.03, 0.42, 0.55, -0.18, 0.18)); // ナンバー(白)
   for (const s of [1, -1]) {
