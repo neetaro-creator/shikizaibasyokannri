@@ -1,0 +1,37 @@
+vehicle_id,sheet,cell,raw,reason
+tank1,Sheet1,R8,各スイッチ,not_item
+tank1,Sheet1,R23,冷却水フィルター用レンチ及びパイプ,not_item
+tank1,Sheet1,R27,ライト(FIRE VULCAN LED) [点灯状況],inspection
+tank1,Sheet1,R47,ライト(FIRE VULCAN LED) [点灯状況],inspection
+tank1,Sheet1,S:AB@7,キャビン後部,start_inferred
+tank1,Sheet1,R15,空気呼吸器圧力確認,not_item
+tank1,Sheet1,R24,サーチライト [点灯状況],inspection
+tank1,Sheet1,R27,e-モニタ液晶画面,not_item
+tank1,Sheet1,R28,冷却水フィルター,not_item
+tank1,Sheet1,R3,サーチライト [作動状況],inspection
+tank1,Sheet1,R5,セパレーターレシーバータンク (水分混入),not_item
+tank1,Sheet1,R8,e-モニタ液晶画面,not_item
+tank1,Sheet1,BI:BR@2,車両後部シャッター,start_inferred
+tank1,Sheet1,R4,可搬ポンプ(第3点検日稼働試験) [燃料満量],inspection
+pump1,Sheet1,R9,サイレンアンプ,not_item
+pump1,Sheet1,R10,真空ポンプ,not_item
+pump1,Sheet1,R47,圧力確認,not_item
+pump1,Sheet1,R62,グランドスパナ、冷却水キャップスパナ、六角レンチ,noqty
+pump1,Sheet1,R11,e - モニター,not_item
+pump1,Sheet1,R12,タンク水,not_item
+pump1,Sheet1,R13,冷却水フィルター,not_item
+pump1,Sheet1,R22,(クアドラノズル、小綱),noqty
+pump1,Sheet1,R33,e - モニター,not_item
+pump1,Sheet1,R43,(クアドラノズル、小綱),noqty
+pump1,Sheet1,R9,ホースレイヤー(目盛り3つ点灯で充電) [作動状況],inspection
+pump1,Sheet1,R40,サーチライト(前 ・ 後),not_item
+command1,Sheet1,R18,発電機 [油量 作動状況],inspection
+command1,Sheet1,R25,排出ガス浄化装置堆積モニター確認 (7以上の場合、ススの燃焼処理実施),not_item
+command1,Sheet1,R39,チェーンソー(刀研ぎ用工具各種) [油量 作動状況],inspection
+command1,Sheet1,W:AE@9,信楽指揮1積載資器材,start_inferred
+command1,Sheet1,R52,携帯型無線機(信楽指揮10) [充電],inspection
+command1,Sheet1,R53,可搬型無線機信楽100(デジタル) [充電],inspection
+command1,Sheet1,R55,署活動用携帯型無線機×11 [充電],inspection
+ambulance1,機器点検表,R88,酸素ボンベ(2L) [Mpa],inspection
+ambulance1,機器点検表,R23,酸素ボンベ・右側(10L) [Mpa],inspection
+ambulance1,機器点検表,R24,酸素ボンベ・左側(10L) [Mpa],inspection

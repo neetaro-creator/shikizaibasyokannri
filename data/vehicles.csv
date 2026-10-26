@@ -1,0 +1,5 @@
+vehicle_id,name,type,model
+tank1,信楽タンク1,タンク,
+pump1,信楽ポンプ1,ポンプ,
+command1,信楽指揮1,指揮,
+ambulance1,信楽救急1,救急,
