@@ -15,8 +15,8 @@ export const AMB = {
   rear: -2.665,
   roof: 2.33,
   cabRear: 1.3, // 運転席と患者室の仕切り
-  frontAxle: 1.9,
-  rearAxle: -1.05,
+  frontAxle: 1.8, // 写真:前輪は短いボンネットのすぐ下
+  rearAxle: -1.58, // ホイールベース約3.38m(スーパーロング)
   wheelR: 0.33,
 };
 const HALF = AMB.width / 2;
@@ -96,58 +96,93 @@ export function ambulanceHotspot(name: string): Hotspot | null | undefined {
 export function buildAmbulance(): THREE.Group {
   const g = new THREE.Group();
   g.name = '信楽救急1';
-  const { dark, glass, steel, rubber, redLamp, whiteLamp, amber } = materials();
+  const { dark, glass, steel, rubber, redLamp, whiteLamp } = materials();
   const white = new THREE.MeshStandardMaterial({ color: 0xf4f5f6, roughness: 0.35, metalness: 0.1 });
   const stripe = new THREE.MeshStandardMaterial({ color: 0xd3122a, roughness: 0.4 });
-  const frosted = new THREE.MeshStandardMaterial({ color: 0xc9d3dc, roughness: 0.6, metalness: 0.1 });
   const { front, rear, roof } = AMB;
-  const shellFront = 1.95;
 
-  // ── 車体(ワンボックス・ハイルーフ) ──
-  g.add(span(white, rear, shellFront, 0.42, roof, -HALF, HALF, 0.1));
-  g.add(span(white, shellFront - 0.1, front - 0.05, 0.42, 1.2, -HALF + 0.03, HALF - 0.03, 0.12)); // ボンネット
-  // フロントガラスまわりの傾斜(三角柱)
-  const slope = new THREE.Shape([new THREE.Vector2(shellFront - 0.02, roof - 0.05), new THREE.Vector2(shellFront - 0.02, 1.15), new THREE.Vector2(front - 0.3, 1.15)]);
-  const wedge = new THREE.Mesh(new THREE.ExtrudeGeometry(slope, { depth: AMB.width - 0.1, bevelEnabled: false }), white);
-  wedge.position.z = -(AMB.width - 0.1) / 2;
+  // ── 車体(ワンボックス・ハイルーフ。日産の写真に寄せる) ──
+  const top = 1.75; // 屋根(ハイルーフ)の前端。この下からフロントガラスが前へ傾いて下りる
+  const hood = { x: front - 0.28, y: 1.12 }; // フロントガラスの下端
+  g.add(span(white, rear, top, 0.42, roof, -HALF, HALF, 0.1)); // 箱の部分
+  g.add(span(white, top - 0.1, front - 0.08, 0.42, hood.y, -HALF + 0.02, HALF - 0.02, 0.14)); // 鼻先とドアの下半分
+  // フロントガラスの傾斜(三角柱)とガラス
+  const slope = new THREE.Shape([new THREE.Vector2(top - 0.02, 2.06), new THREE.Vector2(top - 0.02, hood.y - 0.02), new THREE.Vector2(hood.x, hood.y - 0.02)]);
+  const wedge = new THREE.Mesh(new THREE.ExtrudeGeometry(slope, { depth: AMB.width - 0.08, bevelEnabled: false }), white);
+  wedge.position.z = -(AMB.width - 0.08) / 2;
   g.add(wedge);
-  const wsLen = Math.hypot(front - 0.3 - shellFront, roof - 0.05 - 1.15);
-  const ws = box(wsLen * 0.92, 0.02, AMB.width - 0.24, glass, (shellFront + front - 0.3) / 2 + 0.01, (roof - 0.05 + 1.15) / 2 + 0.01, 0);
-  ws.rotation.z = -Math.atan2(roof - 0.05 - 1.15, front - 0.3 - shellFront);
+  const wsLen = Math.hypot(hood.x - top, 2.06 - hood.y);
+  const ws = box(wsLen * 0.95, 0.02, AMB.width - 0.2, glass, (top + hood.x) / 2 + 0.012, (2.06 + hood.y) / 2 + 0.012, 0);
+  ws.rotation.z = -Math.atan2(2.06 - hood.y, hood.x - top);
   g.add(ws);
-  // 前まわり
-  g.add(span(dark, front - 0.06, front + 0.005, 0.78, 1.0, -0.6, 0.6)); // グリル
-  for (const s of [1, -1]) g.add(span(whiteLamp, front - 0.08, front + 0.005, 0.82, 1.0, s * 0.62, s * 0.86)); // ヘッドライト
-  g.add(span(white, front - 0.15, front + 0.06, 0.35, 0.62, -HALF + 0.02, HALF - 0.02, 0.05)); // バンパー
-  g.add(span(steel, front + 0.05, front + 0.065, 0.42, 0.56, -0.25, 0.25)); // ナンバー台
+  // 屋根の前の張り出し(ガラスの上)
+  g.add(span(white, top - 0.05, top + 0.12, 2.0, roof, -HALF + 0.04, HALF - 0.04, 0.08));
+  // 顔:メッキのグリルとエンブレム、流れたヘッドライト、フォグ
+  g.add(span(steel, front - 0.1, front - 0.05, 0.78, 1.02, -0.5, 0.5, 0.03));
+  g.add(span(dark, front - 0.09, front - 0.04, 0.82, 0.98, -0.42, 0.42));
+  g.add(box(0.03, 0.14, 0.14, steel, front - 0.035, 0.9, 0, 0.05)); // エンブレム
+  for (const s of [1, -1]) {
+    const hl = box(0.3, 0.13, 0.32, whiteLamp, front - 0.18, 0.95, s * 0.72, 0.04);
+    hl.rotation.y = s * 0.35;
+    g.add(hl);
+    g.add(box(0.03, 0.07, 0.1, whiteLamp, front - 0.02, 0.55, s * 0.62, 0.02)); // フォグ
+  }
+  g.add(span(white, front - 0.2, front, 0.36, 0.72, -HALF + 0.03, HALF - 0.03, 0.08)); // バンパー
+  g.add(span(dark, front - 0.03, front + 0.005, 0.4, 0.5, -0.7, 0.7)); // 下の開口
+  g.add(span(steel, front - 0.01, front + 0.005, 0.5, 0.64, -0.24, 0.24)); // ナンバー台
+
+  // 側面:「PARAMEDIC」の文字(DOM の無いテストでは省略)
+  const label = (() => {
+    if (typeof document === 'undefined') return null;
+    const c = document.createElement('canvas');
+    c.width = 512;
+    c.height = 64;
+    const x = c.getContext('2d');
+    if (!x) return null;
+    x.fillStyle = '#d3122a';
+    x.font = 'bold 48px sans-serif';
+    x.textBaseline = 'middle';
+    x.fillText('PARAMEDIC', 8, 34);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return new THREE.MeshBasicMaterial({ map: t, transparent: true });
+  })();
 
   for (const s of [1, -1] as const) {
     const zf = s * HALF;
-    // 赤い帯と側面の窓
-    g.add(span(stripe, rear + 0.05, front - 0.2, 1.0, 1.12, zf - s * 0.005, zf + s * 0.008));
-    g.add(span(stripe, rear + 0.05, shellFront, 2.05, 2.12, zf - s * 0.005, zf + s * 0.008));
-    g.add(span(glass, 1.4, 2.05, 1.35, 1.95, zf - s * 0.005, zf + s * 0.01)); // 前ドアの窓
-    g.add(span(dark, 1.36, 1.38, 0.5, 2.0, zf, zf + s * 0.012)); // 前ドアの合わせ目
-    // スライドドア(すりガラスの窓)
-    g.add(span(dark, 0.27, 0.29, 0.5, 2.2, zf, zf + s * 0.012));
-    g.add(span(frosted, 0.4, 1.2, 1.4, 1.95, zf - s * 0.005, zf + s * 0.01));
-    g.add(span(dark, 0.4, 0.6, 1.2, 1.25, zf, zf + s * 0.02)); // 取っ手
-    // ミラー
-    g.add(box(0.05, 0.05, 0.25, dark, 1.95, 1.75, s * (HALF + 0.12)));
-    g.add(box(0.06, 0.3, 0.16, dark, 1.97, 1.7, s * (HALF + 0.24), 0.03));
-    // 屋根の後ろ角の赤色灯
-    g.add(span(redLamp, rear + 0.05, rear + 0.3, roof, roof + 0.1, zf - s * 0.3, zf - s * 0.05, 0.02));
+    g.add(span(stripe, rear + 0.02, front - 0.12, 0.98, 1.09, zf - s * 0.005, zf + s * 0.008)); // 赤い帯(腰の高さに1本)
+    // 窓はスモーク:前ドア、スライドドア、後ろの2枚
+    g.add(span(glass, 1.12, top - 0.08, 1.3, 1.95, zf - s * 0.005, zf + s * 0.01));
+    g.add(span(glass, 0.15, 1.0, 1.32, 1.98, zf - s * 0.005, zf + s * 0.01));
+    g.add(span(glass, -0.95, 0.05, 1.32, 1.98, zf - s * 0.005, zf + s * 0.01));
+    g.add(span(glass, -2.2, -1.02, 1.32, 1.98, zf - s * 0.005, zf + s * 0.01));
+    for (const x of [1.08, 0.08]) g.add(span(dark, x - 0.01, x + 0.01, 0.45, 2.08, zf, zf + s * 0.012)); // ドアの合わせ目
+    g.add(span(dark, 0.62, 0.85, 1.17, 1.21, zf, zf + s * 0.02)); // スライドドアの取っ手
+    g.add(span(dark, 1.2, 1.35, 1.17, 1.21, zf, zf + s * 0.02)); // 前ドアの取っ手
+    // ミラー(ドアに付いた黒いミラー)
+    g.add(box(0.04, 0.04, 0.18, dark, top - 0.02, 1.72, s * (HALF + 0.08)));
+    g.add(box(0.05, 0.26, 0.13, dark, top - 0.02, 1.7, s * (HALF + 0.17), 0.03));
+    if (label) {
+      const p = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.18), label);
+      p.position.set(-0.2, 2.17, zf + s * 0.012);
+      p.rotation.y = s > 0 ? 0 : Math.PI;
+      g.add(p);
+    }
+    g.add(span(whiteLamp, 0.35, 0.5, 2.14, 2.2, zf, zf + s * 0.01)); // 屋根横の小さな灯火
   }
-  // 屋根前の赤色灯バー
-  g.add(span(redLamp, 1.45, 1.92, roof, AMB.height, -0.82, 0.82, 0.04));
-  // 後部:観音開きの扉、すりガラス、灯火
-  g.add(span(dark, rear - 0.012, rear, 0.5, 2.15, -0.01, 0.01));
+  // 屋根の赤色灯:前の縁と後ろの縁
+  g.add(span(redLamp, top - 0.06, top + 0.14, roof - 0.03, roof + 0.1, -0.84, 0.84, 0.05)); // 前:屋根の縁に沿った細めの灯
+  g.add(span(redLamp, rear + 0.04, rear + 0.32, roof - 0.03, AMB.height, -0.9, 0.9, 0.05)); // 後ろ:横長の灯
+  // 後ろ:大きな1枚ドア、スモークの窓、縦長のテールランプ、縞鋼板のステップ
+  g.add(span(glass, rear - 0.012, rear, 1.38, 2.08, -0.72, 0.72));
+  g.add(span(dark, rear - 0.012, rear, 0.62, 0.64, -0.75, 0.75));
+  g.add(span(steel, rear - 0.015, rear, 0.95, 1.08, -0.18, 0.18)); // エンブレム・ナンバーまわり
   for (const s of [1, -1]) {
-    g.add(span(frosted, rear - 0.012, rear, 1.5, 2.0, s * 0.1, s * 0.75));
-    g.add(span(redLamp, rear - 0.02, rear, 1.0, 1.4, s * 0.8, s * 0.92));
-    g.add(span(amber, rear - 0.02, rear, 0.85, 0.98, s * 0.8, s * 0.92));
+    g.add(span(redLamp, rear - 0.03, rear + 0.01, 0.95, 1.5, s * 0.8, s * 0.93));
+    g.add(span(whiteLamp, rear - 0.03, rear + 0.01, 0.85, 0.94, s * 0.8, s * 0.93));
   }
-  g.add(span(steel, rear - 0.1, rear + 0.05, 0.4, 0.5, -0.8, 0.8)); // 後ろのステップ
+  g.add(span(white, rear - 0.12, rear + 0.1, 0.36, 0.6, -HALF + 0.02, HALF - 0.02, 0.05)); // 後ろのバンパー
+  g.add(span(steel, rear - 0.25, rear - 0.05, 0.42, 0.46, -0.75, 0.75)); // ステップ
 
   // ── 患者室の中(透かしたときの目印。車体と材質を共有しない) ──
   const inside = new THREE.Group();

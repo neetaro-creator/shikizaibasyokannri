@@ -24,6 +24,12 @@ describe('信楽救急1(日産パラメディック)の 3D', () => {
     expect(b.min.y).toBeGreaterThanOrEqual(-0.01);
   });
 
+  it('wheel positions follow the Paramedic photos: front wheel right under the short nose, long wheelbase', () => {
+    expect(AMB.front - AMB.frontAxle).toBeLessThan(1.0);
+    expect(AMB.frontAxle - AMB.rearAxle).toBeGreaterThan(3.2);
+    expect(AMB.frontAxle - AMB.rearAxle).toBeLessThan(3.5);
+  });
+
   it('every placed hotspot is inside the vehicle body', () => {
     const body = new THREE.Box3(new THREE.Vector3(-AMB.length / 2 - 0.05, 0, -AMB.width / 2 - 0.08), new THREE.Vector3(AMB.length / 2, AMB.height, AMB.width / 2 + 0.08));
     for (const n of names) {
