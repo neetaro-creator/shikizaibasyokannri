@@ -133,9 +133,13 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
   /** 車内視点で、その場所の向かいに立ってそちらを向く。 */
   function lookFromInside(center: THREE.Vector3, name: string) {
     const clamp = (x: number, a: number, b: number) => Math.min(b, Math.max(a, x));
-    const fixed = (vehicleObject?.userData.eyes as Record<string, [number, number, number]> | undefined)?.[name];
+    // 車両モデルが決めた視点:[目の x,y,z] または [目の x,y,z, 見る点の x,y,z](何か所かに分かれた場所など)
+    const fixed = (vehicleObject?.userData.eyes as Record<string, number[]> | undefined)?.[name];
     let eye: THREE.Vector3;
-    if (fixed) eye = new THREE.Vector3(...fixed);
+    if (fixed) {
+      eye = new THREE.Vector3(fixed[0], fixed[1], fixed[2]);
+      if (fixed.length === 6) center = new THREE.Vector3(fixed[3], fixed[4], fixed[5]);
+    }
     else if (center.x > 0.9 && Math.abs(center.z) < 0.86) eye = new THREE.Vector3(center.x - 1.2, 1.45, center.z * 0.5); // 前の仕切り・キャブ
     else if (center.z > 0.5) eye = new THREE.Vector3(center.x, 1.45, center.z - 1.15); // 右壁
     else if (center.z < -0.5) eye = new THREE.Vector3(center.x, 1.45, center.z + 1.15); // 左壁

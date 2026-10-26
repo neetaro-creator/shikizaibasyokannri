@@ -70,6 +70,6 @@ describe('信楽救急1(日産パラメディック)の 3D', () => {
     expect(ambulanceHotspot('患者室右側 観察バック 血糖測定器')).toEqual(ambulanceHotspot('患者室右側 観察バック'));
     expect(ambulanceHotspot('A収納 外傷バック オレンジポ―チ内')).toEqual(ambulanceHotspot('A収納 外傷バック'));
     expect(ambulanceHotspot('A収納 オレンジポ―チ内')).toEqual(ambulanceHotspot('A収納 外傷バック'));
-    for (const n of ['気道管理バッグ メイン収納', 'セカンド収納', 'サード']) expect(ambulanceHotspot(n)).toEqual(ambulanceHotspot('気道管理バッグ'));
+    for (const n of ['気道管理バッグ メイン収納', '気道管理バッグ セカンド収納', '気道管理バッグ サード収納']) expect(ambulanceHotspot(n)).toEqual(ambulanceHotspot('気道管理バッグ'));
   });
 });
