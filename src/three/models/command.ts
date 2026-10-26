@@ -27,20 +27,21 @@ const at = (x0: number, x1: number, y0: number, y1: number, z0: number, z1: numb
 });
 
 // 横から見た輪郭の要所
-const COWL_Y = 1.04;
-const COWL = { x: CMD.front - 0.3, y: COWL_Y }; // フロントガラスの下端。ボンネットはほとんど無い
+const COWL_Y = 1.16;
+const COWL = { x: CMD.front - 0.36, y: COWL_Y }; // フロントガラスの下端。ボンネットはほとんど無い
 // 鼻先:上から見て角が大きく丸く、横から見るとバンパーがいちばん前で、上へ行くほど後ろへ傾いてフロントガラスにつながる。
 // 高さごとの断面 [高さ y, 先端の後退量, 角の丸みの半径, 半幅の詰め]
 const NOSE_BACK = CMD.front - 0.6;
 const NOSE: [number, number, number, number][] = [
-  [0.3, 0.04, 0.3, 0.03],
-  [0.4, 0.0, 0.3, 0.0],
-  [0.62, 0.0, 0.3, 0.0],
-  [0.68, 0.04, 0.32, 0.0],
-  [0.94, 0.09, 0.34, 0.005],
-  [1.0, 0.15, 0.37, 0.01],
-  [COWL_Y, 0.3, 0.4, 0.02],
-];
+  [0.3, 0.05, 0.28, 0.03],
+  [0.4, 0.0, 0.28, 0.0], // バンパー(背が高い)
+  [0.76, 0.0, 0.3, 0.0],
+  [0.8, 0.03, 0.31, 0.0], // ヘッドライト・グリルの段
+  [0.98, 0.07, 0.33, 0.005],
+  [1.06, 0.14, 0.36, 0.01], // ボンネット(前から見える丸い板)
+  [1.12, 0.24, 0.39, 0.015],
+  [COWL_Y, 0.36, 0.42, 0.02],
+]
 const SHIELD_TOP = { x: CMD.front - 1.05, y: 1.9 }; // フロントガラスの上端
 const BELT = 1.16; // 窓の下端
 const WIN_TOP = 1.86;
@@ -176,32 +177,34 @@ export function buildCommandCar(): THREE.Group {
   nose.name = 'nose';
   g.add(nose);
   const fx = front;
-  // ヘッドライトの段は上へ行くほど後ろへ傾く(断面 0.68→0.94 で 0.04→0.09 後退)
-  const lean = Math.atan2(0.05, 0.26);
-  const faceX = (y: number) => fx - 0.04 - ((y - 0.68) / 0.26) * 0.05;
+  // ヘッドライトの段は上へ行くほど後ろへ傾く(断面 0.8→0.98 で 0.03→0.07 後退)
+  const lean = Math.atan2(0.04, 0.18);
+  const faceX = (y: number) => fx - 0.03 - ((y - 0.8) / 0.18) * 0.04;
   const lamp = (m: THREE.Material, y: number, h: number, z0: number, z1: number) => {
     const l = span(m, faceX(y) - 0.02, faceX(y) + 0.012, y - h / 2, y + h / 2, z0, z1);
     l.rotation.z = lean;
     return l;
   };
   for (const s of [1, -1]) {
-    g.add(lamp(whiteLamp, 0.82, 0.17, s * 0.38, s * 0.56)); // ヘッドライト(正面)
-    // 角の丸みに沿って横へ回り込む部分(前から白・白・橙)
-    const cr = 0.33, cxx = faceX(0.82) - cr;
-    for (const [a, m] of [[0.3, whiteLamp], [0.68, whiteLamp], [1.08, amber]] as const) {
-      const l = box(0.03, 0.15, 0.13, m, cxx + Math.cos(a) * cr, 0.82, s * (HALF - cr + Math.sin(a) * cr));
+    g.add(lamp(whiteLamp, 0.89, 0.17, s * 0.45, s * 0.53)); // ヘッドライト(正面、外の角へ回り込む)
+    const cr = 0.32, cxx = faceX(0.89) - cr;
+    for (const [a, m] of [[0.25, whiteLamp], [0.65, whiteLamp], [1.05, amber]] as const) {
+      const l = box(0.03, a > 1 ? 0.12 : 0.17, 0.13, m, cxx + Math.cos(a) * cr, 0.89, s * (HALF - cr + Math.sin(a) * cr));
       l.rotation.y = -s * a;
       g.add(l);
     }
   }
-  g.add(lamp(black, 0.82, 0.15, -0.37, 0.37)); // グリル
-  for (const y of [0.79, 0.85]) g.add(lamp(steel, y, 0.014, -0.35, 0.35)); // メッキの横桟
-  g.add(lamp(steel, 0.905, 0.02, -0.38, 0.38)); // グリル上のメッキ
-  g.add(lamp(steel, 0.82, 0.07, -0.05, 0.05)); // エンブレム
-  // バンパー:下の大きな黒い開口、ナンバー、赤色灯
-  g.add(span(black, fx - 0.03, fx + 0.02, 0.36, 0.56, -0.5, 0.5));
-  g.add(span(steel, fx + 0.015, fx + 0.025, 0.44, 0.54, -0.17, 0.17)); // ナンバー
-  for (const s of [1, -1]) g.add(span(redLamp, fx - 0.03, fx + 0.015, 0.44, 0.52, s * 0.55, s * 0.66)); // 前面の赤色灯
+  // グリル:左右のライトの間。上の縁にメッキ、中は黒い格子
+  g.add(lamp(black, 0.88, 0.12, -0.44, 0.44));
+  g.add(lamp(steel, 0.945, 0.025, -0.44, 0.44));
+  g.add(lamp(steel, 0.86, 0.012, -0.42, 0.42));
+  // エンブレム:ボンネットの下の縁の中央
+  { const e = box(0.02, 0.07, 0.11, steel, fx - 0.085, 1.01, 0); e.rotation.z = 0.6; g.add(e); }
+  // バンパー:中央に大きな黒い開口、その下にナンバー、外の角にフォグ(ここでは赤色灯)
+  g.add(span(black, fx - 0.03, fx + 0.02, 0.5, 0.68, -0.48, 0.48));
+  for (const y of [0.56, 0.62]) g.add(span(dark, fx + 0.015, fx + 0.025, y, y + 0.012, -0.46, 0.46));
+  g.add(span(steel, fx + 0.015, fx + 0.025, 0.37, 0.49, -0.17, 0.17)); // ナンバー
+  for (const s of [1, -1]) g.add(span(redLamp, fx - 0.03, fx + 0.015, 0.42, 0.5, s * 0.6, s * 0.7)); // 前面の赤色灯(フォグの位置)
   g.add(span(dark, fx - 0.3, fx - 0.03, 0.27, 0.31, -HALF + 0.1, HALF - 0.1)); // バンパー下のスポイラー
 
   // ── 屋根の赤色灯(前寄りに横長) ──
