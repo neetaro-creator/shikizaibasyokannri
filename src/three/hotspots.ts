@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { Hotspot, Location } from '../data/types';
 
-const BASE = { color: 0xffffff, opacity: 0.15 };
+const BASE = { color: 0xffffff, opacity: 0.07 };
 const HL = { color: 0xffd400, opacity: 0.6 };
 
 export interface Hotspots {

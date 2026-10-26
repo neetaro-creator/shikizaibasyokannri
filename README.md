@@ -26,20 +26,14 @@
 
 点検表(Excel)が改訂されたときは、新しい Excel を渡してもらえれば差分を CSV に反映します。初回変換のスクリプトは `tools/import_xlsx.py`(列の配置は `tools/import_config.json`)。
 
-## 3D モデルの差し替え
+## 3D モデル
 
-1. iPhone の RealityScan(Standard Mode)で車両を撮影し、GLB で書き出す。
-   - 曇りの日、乾いた地面、シャッターは閉める。車から 2〜3m 離れて腰の高さ・頭上・しゃがみの 3 周、1 台 150〜250 枚。
-   - **書き出す前に、RealityScan の切り取り(Crop)で地面と周りの物を消す。** 地面が残ると全長の基準がずれて車が小さくなる。
-2. 最適化(向き・実寸・原点合わせと圧縮):
-   ```
-   npm run optimize-glb -- scan.glb public/models/tank1.glb --length 7.0
-   ```
-   前方が +X(画面で見て車の前)になっていなければ `--rotate-y 90` などを付ける。
-3. `data/vehicles.csv` の `model` に `models/tank1.glb` を書く。
-4. `#/vehicle/tank1?align=1` を開くと位置合わせモードになる。場所を選び、箱をシャッターに合わせて、表示された文字列を `locations.csv` の `hotspot` 欄に貼る。
+車両の 3D は写真をもとにコードで組んだ簡易モデルです(スキャンは使いません)。
 
-モデルが読めないときは自動で簡易モデルになります。
+- 信楽ポンプ1:`src/three/models/pump.ts`。シャッター・収納の位置と、点検表の場所名との対応もここにあります。
+- ほかの車両は箱を組んだ仮モデル(`src/three/placeholder.ts`)。写真をもらえれば同じ作りで起こします。
+- 光る箱の位置は、`locations.csv` の `hotspot` 欄 > 車両モデルの対応表 > 自動配置 の順で決まります。
+- `#/vehicle/pump1?align=1` を開くと位置合わせモードになり、箱を動かして `hotspot` 欄用の文字列を得られます。
 
 ## 開発
 

@@ -34,7 +34,7 @@ export function createScene(canvas: HTMLCanvasElement): Scene3D {
   scene.add(ground);
 
   const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
-  camera.position.set(8, 5, 9);
+  camera.position.set(6.2, 3.4, 6.8);
   const controls = new OrbitControls(camera, canvas);
   controls.target.set(0, 1.3, 0);
   controls.enableDamping = true;

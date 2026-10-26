@@ -3,27 +3,15 @@ import { itemsAt } from '../data/query';
 import type { Db, Location, Vehicle } from '../data/types';
 import { createHotspots } from '../three/hotspots';
 import { loadVehicle } from '../three/load-vehicle';
-import { defaultHotspot } from '../three/placeholder';
+import { resolveHotspots } from '../three/layout';
 import { createScene } from '../three/scene';
 import { disposeObject } from '../three/dispose';
 import { createAlignPanel } from './align-mode';
 import { h, itemHref, vehicleHref } from './dom';
 
-/** CSV の hotspot が無い場所に既定位置を補う。 */
-function withHotspots(locs: Location[], type: string): Location[] {
-  const byGroup = new Map<string, Location[]>();
-  for (const l of locs) byGroup.set(l.group, [...(byGroup.get(l.group) ?? []), l]);
-  return locs.map((l) => {
-    if (l.hotspot) return l;
-    const g = byGroup.get(l.group)!;
-    const hs = defaultHotspot(l, g.indexOf(l), g.length, type);
-    return hs ? { ...l, hotspot: hs } : l;
-  });
-}
-
 /** 車両 3D と場所一覧。戻り値は後片付け。 */
 export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, align = false): () => void {
-  const locs = withHotspots(db.locations.filter((l) => l.vehicleId === v.id), v.type);
+  const locs = resolveHotspots(db.locations.filter((l) => l.vehicleId === v.id), v.type);
   const canvas = h('canvas', { 'aria-label': `${v.name}の3D表示` }) as HTMLCanvasElement;
   const note = h('p', { class: 'hud-note' }, 'ドラッグで回転 ・ ピンチで拡大 ・ 箱をタップで中身');
   const viewer = h('div', { class: 'viewer', 'data-testid': 'viewer' }, canvas,
