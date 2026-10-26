@@ -51,9 +51,9 @@ describe('信楽救急1(日産パラメディック)の 3D', () => {
   it('right sliding door is on +Z, left on -Z; 患者室右側 is on the right wall', () => {
     expect(boxesOf('右スライドドア収納')[0].z).toBeGreaterThan(0.8);
     expect(boxesOf('左スライドドア収納')[0].z).toBeLessThan(-0.8);
-    // 患者室右側は4か所(座席の下・酸素ボンベ・吸引器・時計のあたり)に分かれ、どれも右寄り
-    expect(boxesOf('患者室右側')).toHaveLength(4);
-    for (const h of boxesOf('患者室右側')) expect(h.z).toBeGreaterThan(0.5);
+    // 患者室右側は5か所(座席の下・酸素ボンベ・吸引器・時計のあたり・A のフック)に分かれ、どれも右半分
+    expect(boxesOf('患者室右側')).toHaveLength(5);
+    for (const h of boxesOf('患者室右側')) expect(h.z).toBeGreaterThan(0.2);
   });
 
   it('A の扉は中の場所を選んだときに開く(扉の表では閉じたまま)、右スライドドアは外から開ける', () => {
