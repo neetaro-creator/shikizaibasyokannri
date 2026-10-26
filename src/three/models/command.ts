@@ -27,7 +27,7 @@ const at = (x0: number, x1: number, y0: number, y1: number, z0: number, z1: numb
 });
 
 // 横から見た輪郭の要所
-const COWL = { x: CMD.front - 0.44, y: 1.1 }; // ボンネットの後ろ(フロントガラスの下端)
+const COWL = { x: CMD.front - 0.24, y: 1.0 }; // フロントガラスの下端。ボンネットはほとんど無い
 const SHIELD_TOP = { x: CMD.front - 1.05, y: 1.9 }; // フロントガラスの上端
 const BELT = 1.16; // 窓の下端
 const WIN_TOP = 1.86;
@@ -57,8 +57,8 @@ function profile(): THREE.Shape {
   arch(frontAxle);
   s.lineTo(front - B - 0.08, bottom);
   s.lineTo(front - B, 0.45);
-  s.lineTo(front - B, 0.8);
-  s.quadraticCurveTo(front - B, 0.95, front - B - 0.1, 0.99); // ボンネットの先の丸み
+  s.lineTo(front - B, 0.82);
+  s.quadraticCurveTo(front - B, 0.93, front - B - 0.07, 0.95); // 鼻先の丸み
   s.lineTo(COWL.x, COWL.y);
   s.lineTo(SHIELD_TOP.x, SHIELD_TOP.y);
   s.quadraticCurveTo(SHIELD_TOP.x - 0.12, roof - B, SHIELD_TOP.x - 0.3, roof - B);
@@ -97,13 +97,13 @@ export function buildCommandCar(): THREE.Group {
     const dx = SHIELD_TOP.x - COWL.x, dy = SHIELD_TOP.y - COWL.y;
     const len = Math.hypot(dx, dy) - 0.08;
     const ang = Math.atan2(dy, dx);
-    const n = new THREE.Vector2(dy, -dx).normalize().multiplyScalar(0.012); // 外向き(前上)。面取りの丸みより少し外
+    const n = new THREE.Vector2(dy, -dx).normalize().multiplyScalar(B + 0.01); // 外向き(前上)。押し出しの面取りで輪郭が B 膨らむぶん外へ
     const sh = box(len, 0.012, CMD.width - 0.22, glass, (COWL.x + SHIELD_TOP.x) / 2 + n.x, (COWL.y + SHIELD_TOP.y) / 2 + n.y, 0);
     sh.rotation.z = ang;
     g.add(sh);
     // ワイパー
     for (const z of [-0.35, 0.3]) {
-      const w = box(0.02, 0.02, 0.55, black, COWL.x - 0.02, COWL.y + 0.06, z);
+      const w = box(0.02, 0.02, 0.55, black, COWL.x + 0.02, COWL.y + 0.08, z);
       w.rotation.y = 0.15;
       g.add(w);
     }
@@ -120,7 +120,7 @@ export function buildCommandCar(): THREE.Group {
     // ドアの合わせ目
     const seam = (x: number, y0: number, y1: number) => sidePlate([[x - 0.006, y0], [x + 0.006, y0], [x + 0.006, y1], [x - 0.006, y1]], black, s, 0.006);
     g.add(seam(FRONT_DOOR_REAR, 0.42, 1.92));
-    g.add(seam(COWL.x - 0.02, 0.62, 1.12)); // 前ドアの前
+    g.add(seam(CMD.frontAxle + 0.43, 0.62, 1.2)); // 前ドアの前(前輪の後ろ寄り)
     if (s < 0) g.add(seam(SLIDE_REAR, 0.42, 1.92)); // 左はスライドドア
     g.add(sidePlate([[FRONT_DOOR_REAR - 0.02, 1.885], [rear + 0.25, 1.885], [rear + 0.25, 1.9], [FRONT_DOOR_REAR - 0.02, 1.9]], black, s, 0.006)); // スライドドアのレール(屋根下)
     // 取っ手
