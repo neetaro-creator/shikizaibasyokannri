@@ -30,6 +30,14 @@ export function createHotspots(locations: Location[]): Hotspots {
     mesh.position.set(x, y, z);
     mesh.userData.locationId = l.id;
     mesh.renderOrder = 1;
+    // 強調時だけ見せる輪郭線
+    const edges = new THREE.LineSegments(
+      new THREE.EdgesGeometry(mesh.geometry),
+      new THREE.LineBasicMaterial({ color: HL.color, transparent: true, depthTest: false }),
+    );
+    edges.visible = false;
+    edges.renderOrder = 11;
+    mesh.add(edges);
     boxes.set(l.id, mesh);
     group.add(mesh);
   }
@@ -51,6 +59,7 @@ export function createHotspots(locations: Location[]): Hotspots {
       for (const m of boxes.values()) {
         m.material.setValues({ ...BASE, depthTest: true });
         m.renderOrder = 1;
+        m.children[0].visible = false;
       }
       current = id && boxes.has(id) ? id : undefined;
       if (current) {
@@ -58,6 +67,7 @@ export function createHotspots(locations: Location[]): Hotspots {
         const m = boxes.get(current)!;
         m.material.setValues({ ...HL, depthTest: false });
         m.renderOrder = 10;
+        m.children[0].visible = true;
       }
     },
     highlighted: () => current,
@@ -67,6 +77,9 @@ export function createHotspots(locations: Location[]): Hotspots {
       if (!m) return;
       m.geometry.dispose();
       m.geometry = new THREE.BoxGeometry(w, h, d);
+      const edges = m.children[0] as THREE.LineSegments;
+      edges.geometry.dispose();
+      edges.geometry = new THREE.EdgesGeometry(m.geometry);
       m.position.set(x, y, z);
     },
     update(timeMs) {

@@ -21,8 +21,16 @@ export function createScene(canvas: HTMLCanvasElement): Scene3D {
   const sun = new THREE.DirectionalLight(0xffffff, 1.5);
   sun.position.set(5, 10, 6);
   scene.add(sun);
-  const ground = new THREE.Mesh(new THREE.CircleGeometry(8, 48), new THREE.MeshStandardMaterial({ color: 0x8a8a8a, transparent: true, opacity: 0.25 }));
+  // 床:テーマ色の方眼グリッドと、車の下の淡い円
+  const css = getComputedStyle(document.documentElement);
+  const color = (name: string, fallback: string) => new THREE.Color(css.getPropertyValue(name).trim() || fallback);
+  const grid = new THREE.GridHelper(24, 48, color('--grid-strong', '#3a4a5e'), color('--grid', '#1d2733'));
+  (grid.material as THREE.Material).transparent = true;
+  (grid.material as THREE.Material).opacity = 0.8;
+  scene.add(grid);
+  const ground = new THREE.Mesh(new THREE.CircleGeometry(5.5, 64), new THREE.MeshBasicMaterial({ color: color('--floor', '#16202b'), transparent: true, opacity: 0.6, depthWrite: false }));
   ground.rotation.x = -Math.PI / 2;
+  ground.position.y = 0.002;
   scene.add(ground);
 
   const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);

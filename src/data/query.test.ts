@@ -37,6 +37,11 @@ describe('normalize', () => {
     expect(normalize('ｶﾗﾋﾞﾅ')).toBe(normalize('からびな'));
     expect(normalize('65㎜ ホース')).toBe('65mmほーす');
   });
+  it('treats dash variants as the long vowel mark', () => {
+    expect(normalize('ポ―チ')).toBe(normalize('ポーチ'));
+    expect(normalize('ポ－チ')).toBe(normalize('ポーチ'));
+    expect(normalize('ポ‐チ')).toBe(normalize('ポーチ'));
+  });
 });
 
 describe('search', () => {

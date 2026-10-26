@@ -3,7 +3,12 @@ export interface Route { name: 'search' | 'item' | 'browse' | 'vehicles' | 'vehi
 export function parseHash(hash: string): Route {
   const [path, qs] = hash.replace(/^#/, '').split('?');
   const query = new URLSearchParams(qs ?? '');
-  const parts = path.split('/').filter(Boolean).map(decodeURIComponent);
+  let parts: string[];
+  try {
+    parts = path.split('/').filter(Boolean).map(decodeURIComponent);
+  } catch {
+    return { name: 'search', query }; // 壊れたリンクは検索画面へ
+  }
   switch (parts[0]) {
     case 'item': return { name: 'item', id: parts[1], query };
     case 'browse': return { name: 'browse', query };

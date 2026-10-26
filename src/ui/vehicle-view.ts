@@ -25,12 +25,13 @@ function withHotspots(locs: Location[], type: string): Location[] {
 export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, align = false): () => void {
   const locs = withHotspots(db.locations.filter((l) => l.vehicleId === v.id), v.type);
   const canvas = h('canvas', { 'aria-label': `${v.name}の3D表示` }) as HTMLCanvasElement;
-  const viewer = h('div', { class: 'viewer', 'data-testid': 'viewer' }, canvas);
-  const note = h('p', { class: 'muted' }, 'ドラッグで回転、ピンチで拡大。光っている箱やボタンを押すと中身が出ます。');
-  const sheet = h('aside', { class: 'sheet', 'data-testid': 'sheet', hidden: true });
+  const note = h('p', { class: 'hud-note' }, 'ドラッグで回転 ・ ピンチで拡大 ・ 箱をタップで中身');
+  const viewer = h('div', { class: 'viewer', 'data-testid': 'viewer' }, canvas,
+    h('div', { class: 'hud' }, h('span', { class: 'kicker' }, v.type), h('h1', {}, v.name)), note);
+  const sheet = h('aside', { class: 'sheet', 'data-testid': 'sheet', 'aria-label': '選んだ場所の積載品', 'aria-live': 'polite', hidden: true });
   const groups = [...new Set(locs.map((l) => l.group))];
   const chips = groups.map((g) => h('div', {},
-    h('h2', {}, g),
+    h('h2', { class: 'label' }, g),
     h('div', { class: 'chips' }, locs.filter((l) => l.group === g).map((l) =>
       h('button', { type: 'button', 'data-loc': l.id, onclick: () => select(l.id) }, l.name)))));
   const panel = align
@@ -40,7 +41,7 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
         hotspots?.setHotspot(id, hs);
       })
     : undefined;
-  root.append(...[h('h1', {}, v.name), viewer, note, panel?.el ?? null, ...chips, sheet].filter((x): x is HTMLElement => x !== null));
+  root.append(...[viewer, panel?.el ?? null, ...chips, sheet].filter((x): x is HTMLElement => x !== null));
 
   let three: ReturnType<typeof createScene> | undefined;
   let hotspots: ReturnType<typeof createHotspots> | undefined;
@@ -57,12 +58,13 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
     else delete viewer.dataset.highlight;
     if (!loc) {
       sheet.hidden = true;
+      document.body.classList.remove('sheet-open');
       return;
     }
     const contents = itemsAt(db, loc.id);
     sheet.replaceChildren(...[
       h('div', { class: 'sheet-head' },
-        h('strong', {}, loc.name),
+        h('div', {}, h('span', { class: 'kicker' }, `${v.name} ・ ${contents.length}品目`), h('strong', {}, loc.name)),
         h('button', { type: 'button', class: 'close', 'aria-label': '閉じる', onclick: () => select(undefined) }, '×')),
       loc.hotspot ? null : h('p', { class: 'muted' }, 'この場所は3D上には表示されません(車外保管など)。'),
       h('ul', { class: 'list' }, contents.map((c) => h('li', {}, h('a', { href: itemHref(c.item.id), class: 'row' },
@@ -70,6 +72,7 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
         h('span', { class: 'badge' }, c.qty !== undefined ? String(c.qty) : c.qtyNote ?? ''))))),
     ].filter((x): x is HTMLElement => x !== null));
     sheet.hidden = false;
+    document.body.classList.add('sheet-open');
     const center = hotspots?.centerOf(loc.id);
     if (three && center) {
       // 箱の面の向き(側面なら横、後部なら後ろ)から斜め上に引いて見る
@@ -78,7 +81,7 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
       dir.normalize().add(new THREE.Vector3(0, 0.6, 0)).normalize();
       // 下からシートがかぶるので、注視点を下げて箱を画面上寄りに出す
       const target = center.clone().add(new THREE.Vector3(0, -1.2, 0));
-      three.flyTo(target.clone().add(dir.multiplyScalar(10)), target);
+      three.flyTo(target.clone().add(dir.multiplyScalar(12.5)), target);
     }
   }
 
@@ -135,6 +138,7 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
   if (focus) requestAnimationFrame(() => select(focus));
   return () => {
     disposed = true;
+    document.body.classList.remove('sheet-open');
     three?.dispose();
     delete (window as unknown as Record<string, unknown>).__shikizai3d;
   };

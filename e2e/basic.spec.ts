@@ -11,7 +11,7 @@ test('検索 → 詳細で合計と車両別内訳が見える', async ({ page }
   await page.getByRole('link', { name: /^カラビナ/ }).first().click();
   await expect(page.getByRole('heading', { name: 'カラビナ' })).toBeVisible();
   await expect(page.getByTestId('total')).toHaveText(/\d+/);
-  await expect(page.getByText('信楽タンク1').first()).toBeVisible();
+  await expect(page.locator('.bars .vtag', { hasText: 'タンク1' })).toBeVisible();
   await expect(page.getByText('車両左側後部シャッター 下段')).toBeVisible();
   await noHorizontalScroll(page);
   await page.screenshot({ path: 'e2e/screens/item.png', fullPage: true });
