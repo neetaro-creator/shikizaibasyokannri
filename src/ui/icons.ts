@@ -13,6 +13,7 @@ const PATHS: Record<string, string> = {
   救助: '<path d="M4 20l9-9M13 11l2.5-6.5L20 9z"/><path d="M8.5 15.5l-2-2"/>',
   火災: '<path d="M12 3s6 6.4 6 11a6 6 0 01-12 0c0-4.6 6-11 6-11z"/>',
   油漏れ: '<path d="M4 9h16M5 9l1 11h12l1-11"/><path d="M12 13.5s-2 2.2-2 3.4a2 2 0 004 0c0-1.2-2-3.4-2-3.4z"/>',
+  '水防・土砂': '<path d="M3 15c2-1.6 4-1.6 6 0s4 1.6 6 0 4-1.6 6 0M3 19.5c2-1.6 4-1.6 6 0s4 1.6 6 0 4-1.6 6 0"/><path d="M7 11.5l5-7 5 7z"/>',
   共通: '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',
   その他: '<circle cx="6" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18" cy="12" r="1.3"/>',
 };
