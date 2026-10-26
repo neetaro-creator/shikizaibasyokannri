@@ -35,3 +35,37 @@ command1,Sheet1,R55,署活動用携帯型無線機×11 [充電],inspection
 ambulance1,機器点検表,R88,酸素ボンベ(2L) [Mpa],inspection
 ambulance1,機器点検表,R23,酸素ボンベ・右側(10L) [Mpa],inspection
 ambulance1,機器点検表,R24,酸素ボンベ・左側(10L) [Mpa],inspection
+ambulance1,Sheet2,R5,メインストレッチャー(ベルト×2・ブランケット付),sheet2_only
+ambulance1,Sheet2,AI7,スクープストレッチャー(ベルト×3),sheet2_only
+ambulance1,Sheet2,R11,強力ライト(隊員席下),sheet2_only
+ambulance1,Sheet2,U15,酸素ボンベ,sheet2_only
+ambulance1,Sheet2,AI17,吸引カテーテル(ヤンカー、テーパー12・18),sheet2_only
+ambulance1,Sheet2,C19,予備記録用紙,sheet2_only
+ambulance1,Sheet2,U25,喉頭鏡(ハンドル、プレード0~4),sheet2_only
+ambulance1,Sheet2,U33,ベビー用マスク(1/0),sheet2_only
+ambulance1,Sheet2,AK43,アドレナリン(事務所内5含む),sheet2_only
+ambulance1,Sheet2,U45,人口鼻,sheet2_only
+ambulance1,Sheet2,C47,留置針(18G),sheet2_only
+ambulance1,Sheet2,AK47,留置針(18G),sheet2_only
+ambulance1,Sheet2,C49,留置針(20G),sheet2_only
+ambulance1,Sheet2,AK49,留置針(20G),sheet2_only
+ambulance1,Sheet2,C51,留置針(22G),sheet2_only
+ambulance1,Sheet2,AK51,留置針(22G),sheet2_only
+ambulance1,Sheet2,C53,留置針(24G),sheet2_only
+ambulance1,Sheet2,C59,酒精綿,sheet2_only
+ambulance1,Sheet2,C65,駆血帯(黒・緑),sheet2_only
+ambulance1,Sheet2,AK67,グルコカードGブラック,sheet2_only
+ambulance1,Sheet2,AK69,試験紙(Gセンサー),sheet2_only
+ambulance1,Sheet2,C71,過換気用紙袋,sheet2_only
+ambulance1,Sheet2,U71,腋窩体温計(オレンジ色),sheet2_only
+ambulance1,Sheet2,U75,全周囲ゴーグル,sheet2_only
+ambulance1,Sheet2,AK75,ばんそうこう,sheet2_only
+ambulance1,Sheet2,AK81,プラスティックグローブ,sheet2_only
+ambulance1,Sheet2,AK93,換気マスク(3、5),sheet2_only
+ambulance1,Sheet2,AK97,換気マスク(0/1、2),sheet2_only
+ambulance1,Sheet2,R101,陰圧副子,sheet2_only
+ambulance1,Sheet2,A103,手指消毒器,sheet2_only
+ambulance1,Sheet2,R109,発煙筒,sheet2_only
+ambulance1,Sheet2,R111,バスクリン,sheet2_only
+ambulance1,Sheet2,R113,新型コロナ用長靴,sheet2_only
+ambulance1,Sheet2,R115,帯電長靴・手袋,sheet2_only

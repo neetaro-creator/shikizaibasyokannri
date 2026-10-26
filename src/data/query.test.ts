@@ -81,6 +81,15 @@ describe('formatTotal', () => {
     expect(formatTotal(summarize(only, 'e'))).toBe('適量');
   });
   it('numeric + note → ほか適量あり', () => expect(formatTotal(summarize(db, 'e'))).toBe('3(ほか適量あり)'));
+
+  const notes = (...ns: (string | number)[]): Db => ({
+    ...db,
+    stock: ns.map((n, i) => ({ itemId: 'a', locationId: ['t-l', 't-r', 'p-c'][i], ...(typeof n === 'number' ? { qty: n } : { qtyNote: n }) })),
+  });
+  it('same non-適量 note everywhere → that note', () => expect(formatTotal(summarize(notes('一式', '一式'), 'a'))).toBe('一式'));
+  it('different notes → 内訳参照', () => expect(formatTotal(summarize(notes('一式', '各1'), 'a'))).toBe('内訳参照'));
+  it('inspection note → あり', () => expect(formatTotal(summarize(notes('あり(点検:作動状況)'), 'a'))).toBe('あり'));
+  it('numeric + non-適量 note → ほか内訳参照', () => expect(formatTotal(summarize(notes(5, '一式'), 'a'))).toBe('5(ほか内訳参照)'));
 });
 
 describe('listing', () => {

@@ -5,6 +5,7 @@ import { createHotspots } from '../three/hotspots';
 import { loadVehicle } from '../three/load-vehicle';
 import { defaultHotspot } from '../three/placeholder';
 import { createScene } from '../three/scene';
+import { disposeObject } from '../three/dispose';
 import { createAlignPanel } from './align-mode';
 import { h, itemHref, vehicleHref } from './dom';
 
@@ -43,6 +44,8 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
 
   let three: ReturnType<typeof createScene> | undefined;
   let hotspots: ReturnType<typeof createHotspots> | undefined;
+  let vehicleObject: THREE.Object3D | undefined;
+  let disposed = false;
 
   function select(id?: string) {
     const loc = locs.find((l) => l.id === id);
@@ -92,6 +95,9 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
     s.scene.add(hotspots.group);
     s.onFrame((t) => hotspots!.update(t));
     loadVehicle(v).then(({ object, fallback }) => {
+      // 読み込み中に画面を離れたら捨てる
+      if (disposed) return disposeObject(object);
+      vehicleObject = object;
       s.scene.add(object);
       if (fallback) note.textContent = '3Dモデルを読み込めなかったため、簡易モデルで表示しています。';
       viewer.dataset.ready = 'true';
@@ -103,7 +109,7 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
       if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) return;
       const r = canvas.getBoundingClientRect();
       const ndc = new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
-      const id = hotspots!.pick(ndc, s.camera);
+      const id = hotspots!.pick(ndc, s.camera, vehicleObject ? [vehicleObject] : []);
       if (id) select(id);
     });
 
@@ -117,7 +123,7 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
           if (!c) return [];
           const p = c.project(s.camera);
           if (Math.abs(p.x) > 0.9 || Math.abs(p.y) > 0.9) return [];
-          if (hotspots!.pick(new THREE.Vector2(p.x, p.y), s.camera) !== l.id) return [];
+          if (hotspots!.pick(new THREE.Vector2(p.x, p.y), s.camera, vehicleObject ? [vehicleObject] : []) !== l.id) return [];
           return [{ id: l.id, x: r.left + ((p.x + 1) / 2) * r.width, y: r.top + ((1 - p.y) / 2) * r.height }];
         });
       },
@@ -128,6 +134,7 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
 
   if (focus) requestAnimationFrame(() => select(focus));
   return () => {
+    disposed = true;
     three?.dispose();
     delete (window as unknown as Record<string, unknown>).__shikizai3d;
   };

@@ -71,4 +71,23 @@ describe('createHotspots', () => {
     moved.setHotspot('m', { x: 0, y: 1.5, z: 1.1, w: 1, h: 1, d: 0.1 });
     expect(moved.pick(new THREE.Vector2(0, 0), camera)).toBe('m');
   });
+
+  it('highlighted box draws through the vehicle body (depthTest off, drawn last)', () => {
+    const x = createHotspots([loc('in', '車内', { x: 0, y: 1.5, z: 0, w: 1, h: 1, d: 1 })]);
+    x.highlight('in');
+    const box = x.group.children[0] as THREE.Mesh<THREE.BoxGeometry, THREE.MeshBasicMaterial>;
+    expect(box.material.depthTest).toBe(false);
+    expect(box.renderOrder).toBeGreaterThan(1);
+    x.highlight(undefined);
+    expect(box.material.depthTest).toBe(true);
+  });
+
+  it('pick ignores boxes hidden behind the vehicle body', () => {
+    const inner = createHotspots([loc('in', '車内', { x: 0, y: 1.5, z: 0, w: 1, h: 1, d: 1 })]);
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(3, 3, 0.2), new THREE.MeshBasicMaterial());
+    wall.position.set(0, 1.5, 1.5);
+    wall.updateMatrixWorld();
+    expect(inner.pick(new THREE.Vector2(0, 0), camera)).toBe('in');
+    expect(inner.pick(new THREE.Vector2(0, 0), camera, [wall])).toBeUndefined();
+  });
 });

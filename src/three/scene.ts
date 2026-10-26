@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { disposeObject } from './dispose';
 
 export interface Scene3D {
   scene: THREE.Scene;
@@ -67,7 +68,9 @@ export function createScene(canvas: HTMLCanvasElement): Scene3D {
     dispose() {
       renderer.setAnimationLoop(null);
       controls.dispose();
+      disposeObject(scene);
       renderer.dispose();
+      renderer.forceContextLoss();
     },
   };
 }

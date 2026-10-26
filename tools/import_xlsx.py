@@ -14,6 +14,7 @@ import unicodedata
 from pathlib import Path
 
 import openpyxl
+import pykakasi
 from openpyxl.utils import column_index_from_string
 
 CONFIG = json.loads((Path(__file__).parent / "import_config.json").read_text(encoding="utf-8"))
@@ -22,6 +23,15 @@ SUBLEVEL = re.compile(CONFIG["sublevel_pattern"])
 INSPECTION = re.compile(CONFIG["inspection_pattern"])
 NOT_ITEMS = [unicodedata.normalize("NFKC", n) for n in CONFIG["not_items"]]
 HEADER_ROW = re.compile(r"積載場所")
+KANJI = re.compile(r"[\u4e00-\u9fff]")
+KAKASI = pykakasi.kakasi()
+
+
+def reading(name):
+    """漢字を含む品名のひらがな読み(検索の通称用)。漢字がなければ空。"""
+    if not KANJI.search(name):
+        return ""
+    return "".join(t["hira"] for t in KAKASI.convert(name)).replace(" ", "")
 
 
 def clean(s):
@@ -183,6 +193,19 @@ def read_vehicle(b, v, src):
             b.add(vid, loc, name, qty, note)
     for e in v.get("extra", []):
         b.add(vid, loc_clean(e["location"]), clean(e["name"]), e["qty"], "")
+    # 比較用シート(旧版など)にだけある品名を照合リストに出す
+    known = {key(b.items[k][1]) for k in b.items if any(i == b.items[k][0] and l.startswith(vid) for i, l in b.stock)}
+    for sheet in v.get("compare_sheets", []):
+        for row in wb[sheet].iter_rows():
+            for c in row:
+                if not isinstance(c.value, str):
+                    continue
+                t = clean(c.value)
+                if (len(t) <= 2 or HEADING.search(loc_clean(t)) or HEADER_ROW.search(t) or INSPECTION.search(t)
+                        or parse_qty([t])[0] or t in ("数量", "異常", "適量")):
+                    continue
+                if key(t) not in known:
+                    b.review.append([vid, sheet, c.coordinate, t, "sheet2_only"])
 
 
 def pick(rules, text, default):
@@ -205,7 +228,7 @@ def write(b, out):
       [[lid, vid, name, pick(CONFIG["location_groups"], name, CONFIG["default_group"]), "", ""]
        for (vid, name), lid in b.locations.items()])
     w("items.csv", ["item_id", "name", "aliases", "category", "photo", "model"],
-      [[iid, name, "", pick(CONFIG["categories"], name, CONFIG["default_category"]), "", ""]
+      [[iid, name, reading(name), pick(CONFIG["categories"], name, CONFIG["default_category"]), "", ""]
        for iid, name in b.items.values()])
     w("stock.csv", ["item_id", "location_id", "qty", "qty_note"],
       [[iid, lid, q, n] for (iid, lid), (q, n) in b.stock.items()])

@@ -23,7 +23,7 @@
        {"location": "信楽指揮1積載資器材", "name": "自賠責保険証明書", "qty": "1"},
        {"location": "信楽指揮1積載資器材", "name": "緊急自動車指定証", "qty": "1"}
      ]},
-    {"id": "ambulance1", "name": "信楽救急1", "type": "救急", "file": "ambulance1.xlsx", "sheet": "機器点検表",
+    {"id": "ambulance1", "name": "信楽救急1", "type": "救急", "file": "ambulance1.xlsx", "sheet": "機器点検表", "compare_sheets": ["Sheet2"],
      "bands": [
        {"text": "A:L", "qty": "M:Q", "rows": [[11, 67], [69, 126]]},
        {"text": "R:AC", "qty": "AD:AH", "rows": [[11, 67], [69, 126]]},

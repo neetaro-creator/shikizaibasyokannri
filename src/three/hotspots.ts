@@ -6,7 +6,8 @@ const HL = { color: 0xffd400, opacity: 0.6 };
 
 export interface Hotspots {
   group: THREE.Group;
-  pick(ndc: THREE.Vector2, camera: THREE.Camera): string | undefined;
+  /** occluders(車体)より奥にある箱は拾わない。 */
+  pick(ndc: THREE.Vector2, camera: THREE.Camera, occluders?: THREE.Object3D[]): string | undefined;
   highlight(id?: string): void;
   highlighted(): string | undefined;
   centerOf(id: string): THREE.Vector3 | undefined;
@@ -37,16 +38,27 @@ export function createHotspots(locations: Location[]): Hotspots {
 
   return {
     group,
-    pick(ndc, camera) {
+    pick(ndc, camera, occluders = []) {
       group.updateMatrixWorld();
       raycaster.setFromCamera(ndc, camera);
       const hit = raycaster.intersectObjects([...boxes.values()], false)[0];
-      return hit?.object.userData.locationId;
+      if (!hit) return undefined;
+      const wall = raycaster.intersectObjects(occluders, true)[0];
+      if (wall && wall.distance < hit.distance - 0.05) return undefined;
+      return hit.object.userData.locationId;
     },
     highlight(id) {
-      for (const m of boxes.values()) m.material.setValues(BASE);
+      for (const m of boxes.values()) {
+        m.material.setValues({ ...BASE, depthTest: true });
+        m.renderOrder = 1;
+      }
       current = id && boxes.has(id) ? id : undefined;
-      if (current) boxes.get(current)!.material.setValues(HL);
+      if (current) {
+        // 車内の場所でも車体を透かして見えるよう、奥行き判定を切って最後に描く
+        const m = boxes.get(current)!;
+        m.material.setValues({ ...HL, depthTest: false });
+        m.renderOrder = 10;
+      }
     },
     highlighted: () => current,
     centerOf: (id) => boxes.get(id)?.position.clone(),

@@ -66,3 +66,16 @@ def test_refs_consistent(out):
     for s in out["stock"]:
         assert s["item_id"] in out["item"]
         assert s["location_id"] in out["loc"]
+
+
+def test_sheet2_only_names_go_to_review(out):
+    raws = [x["raw"] for x in out["review"] if x["reason"] == "sheet2_only"]
+    assert "発煙筒" in raws
+    assert "バックボード(ベースプレート付)" not in raws  # 主シートにもある品は出さない
+
+
+def test_kanji_names_get_hiragana_reading(out):
+    by_name = {r["name"]: r["aliases"].split(";") for r in out["items"]}
+    assert "おの" in by_name["斧"]
+    assert "べんけい" in by_name["弁慶"]
+    assert by_name["カラビナ"] == [""]  # 漢字を含まない品には付けない

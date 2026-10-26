@@ -57,7 +57,12 @@ export function totals(db: Db): ItemSummary[] {
   return db.items.map((i) => summarize(db, i.id));
 }
 
+/** 「あり(点検:作動状況)」のような点検由来の注記は「あり」と読む。 */
+const noteLabel = (n: string) => (n.startsWith('あり(') ? 'あり' : n);
+
 export function formatTotal(s: ItemSummary): string {
-  if (s.total === 0 && s.hasUncounted) return '適量';
-  return s.hasUncounted ? `${s.total}(ほか適量あり)` : String(s.total);
+  const notes = [...new Set(s.breakdown.filter((b) => b.qty === undefined && b.qtyNote).map((b) => noteLabel(b.qtyNote!)))];
+  if (!notes.length) return String(s.total);
+  if (s.total === 0) return notes.length === 1 ? notes[0] : '内訳参照';
+  return notes.every((n) => n === '適量') ? `${s.total}(ほか適量あり)` : `${s.total}(ほか内訳参照)`;
 }
