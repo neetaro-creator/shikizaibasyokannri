@@ -397,8 +397,8 @@ i0150,ambulance1-l01,1,
 i0310,ambulance1-l02,5,
 i0311,ambulance1-l02,1,
 i0312,ambulance1-l02,1,
-i0313,ambulance1-l02,1,
-i0314,ambulance1-l02,1,
+i0313,ambulance1-l01,1,
+i0314,ambulance1-l01,1,
 i0315,ambulance1-l03,1,
 i0316,ambulance1-l03,1,
 i0317,ambulance1-l03,1,
@@ -507,7 +507,7 @@ i0398,ambulance1-l19,1,
 i0399,ambulance1-l19,1,
 i0339,ambulance1-l19,1,
 i0400,ambulance1-l19,,適量
-i0401,ambulance1-l19,5,
+i0401,ambulance1-l20,5,
 i0402,ambulance1-l20,2,
 i0386,ambulance1-l20,1,
 i0349,ambulance1-l20,,適量
@@ -592,8 +592,8 @@ i0453,ambulance1-l33,,各1
 i0454,ambulance1-l33,,適量
 i0455,ambulance1-l34,,あり(点検:Mpa)
 i0456,ambulance1-l34,,あり(点検:Mpa)
-i0457,ambulance1-l34,,各1
-i0013,ambulance1-l34,1,
+i0457,ambulance1-l03,,各1
+i0013,ambulance1-l03,1,
 i0458,ambulance1-l34,3,
 i0011,ambulance1-l34,,適量
 i0459,ambulance1-l34,1,
