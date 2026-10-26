@@ -4,3 +4,4 @@ node_modules/
 dist/
 e2e/test-results/
 src/generated/
+e2e/screens/
