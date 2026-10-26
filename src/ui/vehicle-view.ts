@@ -57,6 +57,14 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
   const viewMode = () => (outsideAccess(current) ? 'outside' : mode);
   /** 扉の付いた収納(救急車の A):中の場所を選ぶと開く。 */
   const doors: THREE.Object3D[] = [];
+  /** 開いた扉の位置にある場所(A収納扉(裏)など)は、その扉が閉じている間はタップで拾わない(通路越しのタップを横取りしないように)。 */
+  const closedOnly = (id: string) => {
+    const name = locs.find((l) => l.id === id)?.name;
+    const doorName = name && (vehicleObject?.userData.onlyWhenOpen as Record<string, string> | undefined)?.[name];
+    if (!doorName) return false;
+    const door = doors.find((d) => d.name === doorName);
+    return !!door && !(door.userData.opensFor as string[]).includes(current?.name ?? '');
+  };
   // 場所ボタンと同じ並び(左右スワイプ・‹ › で送る順番)
   const ordered = groups.flatMap((g) => locs.filter((l) => l.group === g));
   const step = (d: number) => {
@@ -241,7 +249,7 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
       const ndc = new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
       const isCab = (id: string) => isInside(locs.find((l) => l.id === id));
       const occluders = vehicleObject && viewMode() === 'outside' ? [vehicleObject] : [];
-      let id = hotspots!.pick(ndc, s.camera, occluders, isCab);
+      let id = hotspots!.pick(ndc, s.camera, occluders, isCab, closedOnly);
       if (!id && vehicleObject && viewMode() === 'inside') {
         // 車内視点:押した壁や機器に一番近い収納
         const ray = new THREE.Raycaster();
@@ -260,6 +268,13 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
 
     // E2E 用:画面に見えている場所箱の中心座標(手前のものだけ)
     (window as unknown as Record<string, unknown>).__shikizai3d = {
+      /** 任意の点(車両の座標)の画面上の位置 */
+      projectPoint: (x: number, y: number, z: number) => {
+        s.camera.updateMatrixWorld();
+        const p = new THREE.Vector3(x, y, z).project(s.camera);
+        const r = canvas.getBoundingClientRect();
+        return { x: r.left + ((p.x + 1) / 2) * r.width, y: r.top + ((1 - p.y) / 2) * r.height };
+      },
       project: (id: string) => {
         const c = hotspots!.centerOf(id);
         if (!c) return undefined;

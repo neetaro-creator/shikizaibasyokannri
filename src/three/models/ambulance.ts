@@ -235,6 +235,8 @@ export function buildAmbulance(): THREE.Group {
   g.add(exterior, buildInterior());
   // 画面側への手がかり:外から開ける収納、車内で特定の位置から見る収納
   g.userData.outsideAccess = ['右スライドドア収納'];
+  // 開いた扉の位置に置いた場所。扉が閉じている間はタップで拾わない
+  g.userData.onlyWhenOpen = { 'A収納扉(裏)': 'door-A' };
   g.userData.eyes = {
     // A は通路側の面が開くので、通路の左後ろから見る。開いた扉の裏(ネット)は後ろから
     'A収納扉(表)': [0.5, 1.45, -0.55],

@@ -6,8 +6,8 @@ const HL = { color: 0xffd400, opacity: 0.6 };
 
 export interface Hotspots {
   group: THREE.Group;
-  /** occluders(車体)より奥にある箱は拾わない。 */
-  pick(ndc: THREE.Vector2, camera: THREE.Camera, occluders?: THREE.Object3D[], seeThrough?: (id: string) => boolean): string | undefined;
+  /** occluders(車体)より奥にある箱は拾わない。skip が真の場所の箱は無いものとして素通りする(閉じた扉の裏など)。 */
+  pick(ndc: THREE.Vector2, camera: THREE.Camera, occluders?: THREE.Object3D[], seeThrough?: (id: string) => boolean, skip?: (id: string) => boolean): string | undefined;
   /** p から radius 以内で、accept を満たす箱のうち中心が最も近いもの。 */
   nearest(p: THREE.Vector3, radius: number, accept: (id: string) => boolean): string | undefined;
   highlight(id?: string): void;
@@ -64,10 +64,10 @@ export function createHotspots(locations: Location[]): Hotspots {
 
   return {
     group,
-    pick(ndc, camera, occluders = [], seeThrough = () => false) {
+    pick(ndc, camera, occluders = [], seeThrough = () => false, skip = () => false) {
       group.updateMatrixWorld();
       raycaster.setFromCamera(ndc, camera);
-      const hit = raycaster.intersectObjects(all(), false)[0];
+      const hit = raycaster.intersectObjects(all(), false).find((h) => !skip(h.object.userData.locationId));
       if (!hit) return undefined;
       const id: string = hit.object.userData.locationId;
       if (seeThrough(id)) return id; // キャブ内など、車体を透かして選んでよい場所

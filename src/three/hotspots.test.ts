@@ -129,4 +129,13 @@ describe('createHotspots', () => {
     expect(hs4.group.children[0].children[0].visible).toBe(true);
     expect(hs4.centerOf('pouch')!.y).toBe(1.5);
   });
+
+  it('skip() lets a tap pass through a box (a closed door\'s back) to the box behind it', () => {
+    const hs5 = createHotspots([
+      loc('front', '車内', { x: 0, y: 1.5, z: 1, w: 0.5, h: 0.5, d: 0.1 }),
+      loc('back', '車内', { x: 0, y: 1.5, z: 0, w: 0.5, h: 0.5, d: 0.5 }),
+    ]);
+    expect(hs5.pick(new THREE.Vector2(0, 0), camera)).toBe('front');
+    expect(hs5.pick(new THREE.Vector2(0, 0), camera, [], () => false, (id) => id === 'front')).toBe('back');
+  });
 });

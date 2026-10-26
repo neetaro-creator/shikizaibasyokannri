@@ -101,3 +101,15 @@ test('救急車の右スライドドア収納(外から開ける)は、車内視
   await page.getByRole('button', { name: 'A収納 黒かばん' }).click();
   await expect(viewer).toHaveAttribute('data-view', 'inside');
 });
+
+test('救急車の車内視点で通路越しに運転席まわりを押すと、閉じた A の扉の裏ではなく運転席・助手席付近が選ばれる', async ({ page }) => {
+  await page.goto('./#/vehicle/ambulance1');
+  const viewer = page.getByTestId('viewer');
+  await expect(viewer).toHaveAttribute('data-ready', 'true');
+  await page.waitForTimeout(300);
+  // ダッシュボードの上(通路の向こう)
+  const p = await page.evaluate(() =>
+    (window as unknown as { __shikizai3d: { projectPoint(x: number, y: number, z: number): { x: number; y: number } } }).__shikizai3d.projectPoint(2.3, 1.24, -0.25));
+  await page.mouse.click(p.x, p.y);
+  await expect(viewer).toHaveAttribute('data-highlight', 'ambulance1-l01');
+});
