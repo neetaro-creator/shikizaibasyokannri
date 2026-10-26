@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build-db": "tsx scripts/build-db.ts",
+    "optimize-glb": "tsx scripts/optimize-glb.ts",
     "predev": "npm run build-db",
     "dev": "vite",
     "prebuild": "npm run build-db",
@@ -14,11 +15,17 @@
     "e2e": "playwright test"
   },
   "devDependencies": {
+    "@gltf-transform/core": "^4.5.1",
+    "@gltf-transform/extensions": "^4.5.1",
+    "@gltf-transform/functions": "^4.5.1",
     "@playwright/test": "^1.63.0",
     "@types/node": "^26.6.5",
     "@types/papaparse": "^5.5.2",
     "@types/three": "^0.169.0",
+    "draco3dgltf": "^1.5.9",
+    "meshoptimizer": "^1.3.0",
     "papaparse": "^5.7.0",
+    "sharp": "^0.35.5",
     "three": "^0.169.0",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3",

@@ -68,3 +68,9 @@ a { color: inherit; }
 .sheet-head { display: flex; align-items: center; gap: 8px; position: sticky; top: -8px; background: var(--card); padding: 6px 0; }
 .sheet-head strong { flex: 1; font-size: 17px; }
 .sheet .close { font-size: 22px; line-height: 1; width: 40px; height: 40px; border: 0; background: none; color: var(--text); cursor: pointer; }
+.align { background: var(--card); border: 2px dashed var(--hl); border-radius: 12px; padding: 4px 12px 8px; margin: 12px 0; }
+.align h2 { margin-top: 8px; }
+.align-row { display: flex; align-items: center; gap: 6px; margin: 6px 0; }
+.align-row span { width: 72px; font-size: 14px; }
+.align-row input { flex: 1; min-width: 0; font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--text); }
+.align-row button { font: inherit; min-width: 44px; height: 40px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); }

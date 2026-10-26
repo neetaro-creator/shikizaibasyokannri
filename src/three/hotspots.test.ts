@@ -64,4 +64,11 @@ describe('createHotspots', () => {
   it('only locations with hotspot get a box', () => {
     expect(hs.group.children).toHaveLength(2);
   });
+
+  it('setHotspot moves the box so pick follows it', () => {
+    const moved = createHotspots([loc('m', '右側', { x: 5, y: 1.5, z: 1.1, w: 1, h: 1, d: 0.1 })]);
+    expect(moved.pick(new THREE.Vector2(0, 0), camera)).toBeUndefined();
+    moved.setHotspot('m', { x: 0, y: 1.5, z: 1.1, w: 1, h: 1, d: 0.1 });
+    expect(moved.pick(new THREE.Vector2(0, 0), camera)).toBe('m');
+  });
 });

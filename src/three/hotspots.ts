@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { Location } from '../data/types';
+import type { Hotspot, Location } from '../data/types';
 
 const BASE = { color: 0xffffff, opacity: 0.15 };
 const HL = { color: 0xffd400, opacity: 0.6 };
@@ -10,6 +10,8 @@ export interface Hotspots {
   highlight(id?: string): void;
   highlighted(): string | undefined;
   centerOf(id: string): THREE.Vector3 | undefined;
+  /** 位置合わせモード用:箱の位置・大きさを差し替える。 */
+  setHotspot(id: string, hs: Hotspot): void;
   /** 毎フレーム呼ぶ。強調中の箱を 1 秒周期で点滅させる。 */
   update(timeMs: number): void;
 }
@@ -48,6 +50,13 @@ export function createHotspots(locations: Location[]): Hotspots {
     },
     highlighted: () => current,
     centerOf: (id) => boxes.get(id)?.position.clone(),
+    setHotspot(id, { x, y, z, w, h, d }) {
+      const m = boxes.get(id);
+      if (!m) return;
+      m.geometry.dispose();
+      m.geometry = new THREE.BoxGeometry(w, h, d);
+      m.position.set(x, y, z);
+    },
     update(timeMs) {
       if (!current) return;
       const k = 0.5 + 0.5 * Math.sin((timeMs / 1000) * Math.PI * 2);

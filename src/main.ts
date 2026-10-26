@@ -40,7 +40,7 @@ function route(): void {
     case 'vehicle': {
       const v = db.vehicles.find((x) => x.id === r.id);
       if (!v) return void main.append(h('p', { class: 'empty' }, 'この車両は見つかりません。'));
-      cleanup = vehicleView.render(main, db, v, r.query.get('loc') ?? undefined);
+      cleanup = vehicleView.render(main, db, v, r.query.get('loc') ?? undefined, r.query.get('align') === '1');
       return;
     }
     default: return searchView.render(main, db);

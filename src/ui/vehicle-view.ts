@@ -5,6 +5,7 @@ import { createHotspots } from '../three/hotspots';
 import { loadVehicle } from '../three/load-vehicle';
 import { defaultHotspot } from '../three/placeholder';
 import { createScene } from '../three/scene';
+import { createAlignPanel } from './align-mode';
 import { h, itemHref, vehicleHref } from './dom';
 
 /** CSV の hotspot が無い場所に既定位置を補う。 */
@@ -20,7 +21,7 @@ function withHotspots(locs: Location[], type: string): Location[] {
 }
 
 /** 車両 3D と場所一覧。戻り値は後片付け。 */
-export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string): () => void {
+export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, align = false): () => void {
   const locs = withHotspots(db.locations.filter((l) => l.vehicleId === v.id), v.type);
   const canvas = h('canvas', { 'aria-label': `${v.name}の3D表示` }) as HTMLCanvasElement;
   const viewer = h('div', { class: 'viewer', 'data-testid': 'viewer' }, canvas);
@@ -31,14 +32,22 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string): (
     h('h2', {}, g),
     h('div', { class: 'chips' }, locs.filter((l) => l.group === g).map((l) =>
       h('button', { type: 'button', 'data-loc': l.id, onclick: () => select(l.id) }, l.name)))));
-  root.append(h('h1', {}, v.name), viewer, note, ...chips, sheet);
+  const panel = align
+    ? createAlignPanel((id, hs) => {
+        const i = locs.findIndex((l) => l.id === id);
+        locs[i] = { ...locs[i], hotspot: hs };
+        hotspots?.setHotspot(id, hs);
+      })
+    : undefined;
+  root.append(...[h('h1', {}, v.name), viewer, note, panel?.el ?? null, ...chips, sheet].filter((x): x is HTMLElement => x !== null));
 
   let three: ReturnType<typeof createScene> | undefined;
   let hotspots: ReturnType<typeof createHotspots> | undefined;
 
   function select(id?: string) {
     const loc = locs.find((l) => l.id === id);
-    history.replaceState(null, '', vehicleHref(v.id, loc?.id));
+    history.replaceState(null, '', vehicleHref(v.id, loc?.id) + (align ? `${loc ? '&' : '?'}align=1` : ''));
+    panel?.show(loc);
     root.querySelectorAll<HTMLButtonElement>('[data-loc]').forEach((b) => b.classList.toggle('on', b.dataset.loc === loc?.id));
     hotspots?.highlight(loc?.hotspot ? loc.id : undefined);
     if (hotspots?.highlighted()) viewer.dataset.highlight = loc!.id;
