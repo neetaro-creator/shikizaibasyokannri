@@ -3,12 +3,13 @@ import type { Hotspot, Location } from '../data/types';
 import { buildPumpTruck, PUMP } from './models/pump';
 import { buildTankTruck, TANK } from './models/tank';
 import { AMB, buildAmbulance } from './models/ambulance';
+import { buildCommandCar, CMD } from './models/command';
 
 /** 車両の寸法[m]。前方 +X、上 +Y、右 +Z、地面 y=0、全長の中心が x=0。 */
 export const DIMENSIONS: Record<string, { length: number; width: number; height: number; cab: number; body: number; color: number }> = {
   タンク: { length: TANK.length, width: TANK.width, height: 3.0, cab: TANK.front - TANK.cabRear, body: TANK.bodyTop, color: 0xc8102e },
   ポンプ: { length: PUMP.length, width: PUMP.width, height: 2.9, cab: PUMP.front - PUMP.cabRear, body: PUMP.bodyTop, color: 0xc8102e },
-  指揮: { length: 4.7, width: 1.8, height: 2.0, cab: 1.6, body: 1.9, color: 0xc8102e },
+  指揮: { length: CMD.length, width: CMD.width, height: CMD.height, cab: CMD.front - CMD.cabRear, body: CMD.roof, color: 0xc8102e },
   救急: { length: AMB.length, width: AMB.width, height: AMB.height, cab: AMB.front - AMB.cabRear, body: AMB.roof, color: 0xf4f4f4 },
 };
 const dims = (type: string) => DIMENSIONS[type] ?? DIMENSIONS['ポンプ'];
@@ -19,6 +20,7 @@ export function buildPlaceholder(type: string): THREE.Group {
   if (type === 'ポンプ') return buildPumpTruck();
   if (type === 'タンク') return buildTankTruck();
   if (type === '救急') return buildAmbulance();
+  if (type === '指揮') return buildCommandCar();
   const d = dims(type);
   const g = new THREE.Group();
   const paint = new THREE.MeshStandardMaterial({ color: d.color, roughness: 0.45, metalness: 0.1 });

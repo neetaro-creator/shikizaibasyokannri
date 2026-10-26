@@ -2,6 +2,7 @@ import type { Hotspot, Location } from '../data/types';
 import { pumpHotspot } from './models/pump';
 import { tankHotspot } from './models/tank';
 import { ambulanceHotspot } from './models/ambulance';
+import { commandHotspot } from './models/command';
 import { defaultHotspot } from './placeholder';
 
 /** 車種ごとの作り込みモデルが持つ場所の配置。 */
@@ -10,6 +11,7 @@ const MODEL_LAYOUTS: Record<string, (name: string) => Hotspot | Hotspot[] | null
   ポンプ: pumpHotspot,
   タンク: tankHotspot,
   救急: ambulanceHotspot,
+  指揮: commandHotspot,
 };
 
 /** 場所の箱の位置を決める。優先順:CSV の hotspot > 車種モデルの配置 > 自動配置。 */
