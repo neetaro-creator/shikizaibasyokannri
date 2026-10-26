@@ -152,6 +152,16 @@ main { max-width: 760px; margin: 0 auto; padding: 16px 16px 24px; }
 .v-ambulance1 { --c: var(--v-ambulance1); }
 
 /* ── チップ・タイル ── */
+.vfilter { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0 0; padding: 0; border: 0; }
+.vfilter legend { float: left; margin-right: 4px; font-size: 13px; color: var(--muted); }
+.vcheck {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 12px; border-radius: 999px; cursor: pointer;
+  font-size: 14px; font-weight: 700; color: var(--c); border: 1px solid color-mix(in srgb, var(--c) 55%, transparent);
+  background: color-mix(in srgb, var(--c) 8%, transparent);
+}
+.vcheck input { width: 18px; height: 18px; margin: 0; accent-color: var(--c); }
+.vcheck:has(input:checked) { background: color-mix(in srgb, var(--c) 24%, transparent); border-color: var(--c); }
+.vcheck:has(input:focus-visible) { outline: 2px solid var(--hl); outline-offset: 2px; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip, .chips button {
   padding: 10px 14px; min-height: 44px; border-radius: 999px; border: 1px solid var(--line);

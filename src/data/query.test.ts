@@ -109,4 +109,15 @@ describe('listing', () => {
   it('totals covers every item', () => {
     expect(totals(db)).toHaveLength(5);
   });
+
+  it('search/summarize can be narrowed to chosen vehicles', () => {
+    const only = new Set(['pump1']);
+    expect(search(db, 'カラビナ', only).map((i) => i.id)).toEqual(['a']);
+    const s = summarize(db, 'a', only);
+    expect(s.breakdown.map((b) => b.location.id)).toEqual(['p-c']);
+    expect(s.total).toBe(4);
+    expect(search(db, 'スパナ', only)).toEqual([]);
+    // 空の集合・未指定は全車
+    expect(search(db, 'カラビナ', new Set()).length).toBe(2);
+  });
 });

@@ -73,3 +73,19 @@ test('以前の「探す」のURLは検索画面の分類表示につながる',
   await expect(page.getByRole('searchbox')).toBeVisible();
   await expect(page.locator('.grid .card').first()).toBeVisible();
 });
+
+test('車両をチェックすると、その車両に積んでいる品と場所だけで検索できる', async ({ page }) => {
+  await page.goto('./');
+  await page.getByRole('checkbox', { name: '信楽救急1' }).check();
+  await page.getByRole('searchbox').fill('カラビナ');
+  await expect(page.getByTestId('result')).toHaveCount(0);
+  await page.getByRole('searchbox').fill('ガーゼ');
+  const results = page.getByTestId('result');
+  await expect(results.first()).toBeVisible();
+  const tags = await page.getByTestId('result').locator('.vtag').allTextContents();
+  expect(tags.length).toBeGreaterThan(0);
+  expect(tags.every((t) => t === '救急1')).toBe(true);
+  await page.getByRole('checkbox', { name: '信楽救急1' }).uncheck();
+  await page.getByRole('searchbox').fill('カラビナ');
+  await expect(results.first()).toBeVisible();
+});
