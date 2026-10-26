@@ -61,9 +61,29 @@ test('キャブ内の場所も、車体の上からタップして選べる', as
   await expect(page.getByTestId('sheet')).toBeVisible();
 });
 
-test('救急車の車内の場所を選ぶと車体が透ける', async ({ page }) => {
+test('救急車は車内視点で開き、外観に切り替えると車内の場所は車体を透かして見せる', async ({ page }) => {
   await page.goto('./#/vehicle/ambulance1?loc=ambulance1-l12');
-  await expect(page.getByTestId('viewer')).toHaveAttribute('data-ready', 'true');
-  await expect(page.getByTestId('viewer')).toHaveAttribute('data-xray', 'true');
-  await expect(page.getByTestId('viewer')).toHaveAttribute('data-highlight', 'ambulance1-l12');
+  const viewer = page.getByTestId('viewer');
+  await expect(viewer).toHaveAttribute('data-ready', 'true');
+  await expect(viewer).toHaveAttribute('data-view', 'inside');
+  await expect(viewer).not.toHaveAttribute('data-xray', 'true');
+  await expect(viewer).toHaveAttribute('data-highlight', 'ambulance1-l12');
+  await page.getByTestId('view-toggle').click();
+  await expect(viewer).toHaveAttribute('data-view', 'outside');
+  await expect(viewer).toHaveAttribute('data-xray', 'true');
+  await page.getByTestId('view-toggle').click();
+  await expect(viewer).toHaveAttribute('data-view', 'inside');
+});
+
+test('救急車の車内視点で、見えている収納をタップすると中身が出る', async ({ page }) => {
+  await page.goto('./#/vehicle/ambulance1');
+  const viewer = page.getByTestId('viewer');
+  await expect(viewer).toHaveAttribute('data-ready', 'true');
+  await page.waitForTimeout(300);
+  const target = await page.evaluate(() =>
+    (window as unknown as { __shikizai3d: { visible(): { id: string; x: number; y: number }[] } }).__shikizai3d.visible()[0]);
+  expect(target).toBeTruthy();
+  await page.mouse.click(target.x, target.y);
+  await expect(viewer).toHaveAttribute('data-highlight', target.id);
+  await expect(page.getByTestId('sheet')).toBeVisible();
 });

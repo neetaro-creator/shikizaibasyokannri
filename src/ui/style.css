@@ -235,6 +235,10 @@ body[data-route="vehicle"] main { padding-top: 0; }
   font-size: 12px; color: var(--muted); background: var(--glass); border: 1px solid var(--line);
   padding: 5px 12px; border-radius: 999px; pointer-events: none;
 }
+.view-toggle {
+  position: absolute; top: 12px; right: 12px; min-height: 44px; padding: 0 14px; border-radius: 999px;
+  font: inherit; font-size: 14px; font-weight: 700; color: var(--text); background: var(--glass); border: 1px solid var(--line); cursor: pointer;
+}
 .chips button[data-loc].on { background: var(--hl); color: #111; border-color: var(--hl); }
 .sheet { touch-action: pan-y; }
 .sheet[hidden] { display: none; }

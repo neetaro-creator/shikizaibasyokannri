@@ -186,26 +186,169 @@ export function buildAmbulance(): THREE.Group {
   g.add(span(white, rear - 0.12, rear + 0.1, 0.36, 0.6, -HALF + 0.02, HALF - 0.02, 0.05)); // 後ろのバンパー
   g.add(span(steel, rear - 0.25, rear - 0.05, 0.42, 0.46, -0.75, 0.75)); // ステップ
 
-  // ── 患者室の中(透かしたときの目印。車体と材質を共有しない) ──
-  const inside = new THREE.Group();
-  inside.userData.interior = true;
-  const cabinet = new THREE.MeshStandardMaterial({ color: 0xb9c2cc, roughness: 0.5 });
-  const seat = new THREE.MeshStandardMaterial({ color: 0x2b3340, roughness: 0.7 });
-  const bed = new THREE.MeshStandardMaterial({ color: 0xe8ecef, roughness: 0.6 });
-  const screen = new THREE.MeshStandardMaterial({ color: 0x1e2a36, emissive: 0x2a8f6a, emissiveIntensity: 0.4 });
-  inside.add(span(bed, -2.3, -0.3, 0.75, 0.9, -0.3, 0.35, 0.04)); // メインストレッチャー
-  inside.add(span(cabinet, -2.5, 1.25, 0.55, 2.25, RW.z0 - 0.02, RW.z0)); // 右壁(機器の壁)の面
-  inside.add(span(cabinet, -2.05, 0.8, 0.95, 1.0, RW.z0 - 0.12, RW.z1)); // 右壁のカウンター
-  inside.add(span(screen, -0.05, 0.42, 1.25, 1.55, RW.z0 - 0.04, RW.z0 - 0.02)); // モニター
-  inside.add(span(cabinet, -2.4, -0.9, 0.55, 0.9, LW.z0, -0.45)); // 左の長いす
-  inside.add(span(cabinet, PART.x1, PART.x1 + 0.02, 0.55, 2.25, -0.86, -0.45)); // 前の仕切り(左)
-  inside.add(span(cabinet, PART.x1, PART.x1 + 0.02, 0.55, 2.25, 0.05, 0.86)); // 前の仕切り(右)
-  inside.add(span(seat, -0.9, -0.55, 0.55, 0.95, LW.z0, -0.45, 0.04)); // 長いす前の隊員席
-  inside.add(span(seat, 1.6, 2.1, 0.7, 1.05, -0.8, -0.15, 0.04)); // 助手席
-  inside.add(span(seat, 1.6, 2.1, 0.7, 1.05, 0.15, 0.8, 0.04)); // 運転席
-  g.add(inside);
-
   // ── タイヤ ──
   for (const x of [AMB.frontAxle, AMB.rearAxle]) for (const s of [1, -1]) wheel(g, x, s * (HALF - 0.18), AMB.wheelR, 0.24, rubber, steel);
+
+  // ここまでが外観。車内視点ではまとめて隠す
+  const exterior = new THREE.Group();
+  exterior.name = 'exterior';
+  exterior.add(...[...g.children]);
+  g.add(exterior, buildInterior());
   return g;
+}
+
+/** 患者室とキャブの中。外観と材質を共有しない(外観を透かしても中は透けない)。 */
+function buildInterior(): THREE.Group {
+  const inside = new THREE.Group();
+  inside.name = 'interior';
+  inside.userData.interior = true;
+  const mat = (color: number, extra: THREE.MeshStandardMaterialParameters = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.6, ...extra });
+  const wall = mat(0xeceee9, { side: THREE.DoubleSide });
+  const white = mat(0xf3f3ef, { roughness: 0.4 });
+  const beige = mat(0xd8d2c4, { roughness: 0.8 });
+  const dark = mat(0x23272d, { roughness: 0.5 });
+  const smoke = mat(0x1d2830, { roughness: 0.1, metalness: 0.3 });
+  const frosted = mat(0xb9c7bc, { roughness: 0.3, emissive: 0x6f7f74, emissiveIntensity: 0.25 });
+  const steel = mat(0xc9ced4, { roughness: 0.3, metalness: 0.8 });
+  const screen = mat(0x1e2a36, { emissive: 0x2a8f6a, emissiveIntensity: 0.35 });
+  const orange = mat(0xf0561e);
+  const yellow = mat(0xe3d92a);
+  const green = mat(0x8fd39a);
+  const red = mat(0xc8142c);
+  const lamp = mat(0xffffff, { emissive: 0xffffff, emissiveIntensity: 0.6 });
+  const mattress = mat(0x9fbdd3, { roughness: 0.9 });
+  const add = (m: THREE.Material, x0: number, x1: number, y0: number, y1: number, z0: number, z1: number, r = 0) => inside.add(span(m, x0, x1, y0, y1, z0, z1, r));
+
+  const IN = { rear: -2.58, front: 1.26, floor: 0.52, ceil: 2.32, z: 0.88 };
+  // 殻(床・天井・壁)。外観で見るときは隠す
+  const shell = new THREE.Group();
+  shell.name = 'shell';
+  shell.userData.shell = true;
+  for (const m of [
+    span(mat(0x8d9399), IN.rear, IN.front, IN.floor - 0.02, IN.floor, -IN.z, IN.z), // 床
+    span(mat(0xdcd9d2, { side: THREE.DoubleSide }), IN.rear, IN.front, IN.ceil, IN.ceil + 0.02, -IN.z, IN.z), // 天井
+    span(wall, IN.rear, IN.front, IN.floor, IN.ceil, IN.z, IN.z + 0.02), // 右壁
+    span(wall, IN.rear, IN.front, IN.floor, IN.ceil, -IN.z - 0.02, -IN.z), // 左壁
+    span(wall, IN.rear - 0.02, IN.rear, IN.floor, IN.ceil, -IN.z, IN.z), // 後ろのドア
+    span(wall, IN.front, IN.front + 0.02, IN.floor, IN.ceil, -IN.z, IN.z), // 前の仕切り
+  ]) shell.add(m);
+  inside.add(shell);
+  // 窓(すりガラス)、後ろの窓、運転席への通路
+  add(frosted, -2.2, -1.0, 1.3, 1.9, -IN.z + 0.001, -IN.z + 0.006);
+  add(frosted, IN.rear + 0.001, IN.rear + 0.006, 1.38, 2.0, -0.6, 0.6);
+  add(smoke, IN.front - 0.006, IN.front - 0.001, 0.75, 1.9, -0.42, 0.03);
+  // 左のスライドドア(内張りと窓、取っ手)
+  add(mat(0xe1e2dc), 0.15, 0.95, 0.55, 1.95, -IN.z + 0.001, -IN.z + 0.006);
+  add(frosted, 0.25, 0.9, 1.32, 1.88, -IN.z + 0.006, -IN.z + 0.01);
+  add(dark, 0.2, 0.24, 1.0, 1.25, -IN.z + 0.006, -IN.z + 0.04);
+
+  // 前の仕切り:左に I・J と床置きの K、右に A、上に B、床に赤いバッグ
+  add(white, 1.0, 1.25, 1.18, 1.9, -0.84, -0.47);
+  add(dark, 0.995, 1.0, 1.535, 1.545, -0.84, -0.47);
+  add(white, 0.95, 1.25, 0.55, 1.05, -0.84, -0.42);
+  add(white, 1.0, 1.25, 0.75, 1.93, 0.05, 0.55);
+  add(green, 0.93, 1.0, 1.5, 1.85, 0.08, 0.27);
+  add(green, 0.93, 1.0, 1.5, 1.85, 0.29, 0.48);
+  add(mat(0xf2a6c4), 0.95, 1.0, 1.3, 1.45, 0.12, 0.35); // ティッシュ
+  add(white, 0.95, 1.25, 1.95, 2.25, -0.45, 0.45);
+  add(red, 0.55, 0.95, 0.53, 0.85, -0.4, 0.0, 0.04);
+
+  // 右壁(機器の壁)
+  add(white, -2.05, 0.8, 0.95, 1.0, 0.5, IN.z); // カウンター
+  add(steel, -2.05, -0.9, 0.56, 0.94, 0.6, 0.62); // メインストレッチャー右側収納(スクープ・バックボード)
+  add(white, -0.9, 0.8, 0.56, 0.94, 0.62, 0.64);
+  add(white, -1.95, -1.2, 1.0, 1.62, 0.62, IN.z); // H(ガラス戸)
+  add(smoke, -1.9, -1.25, 1.05, 1.57, 0.6, 0.62);
+  add(white, -1.9, -1.25, 1.66, 1.86, 0.62, IN.z); // H の上の引出し
+  add(yellow, -1.13, -1.0, 1.0, 1.33, 0.62, 0.86, 0.02); // 観察バック
+  add(orange, -0.83, -0.45, 1.0, 1.42, 0.64, 0.86, 0.02); // 除細動器
+  add(screen, -0.75, -0.53, 1.18, 1.36, 0.635, 0.64);
+  add(white, -0.03, 0.4, 1.0, 1.2, 0.66, 0.86); // 人工呼吸器
+  add(white, -0.03, 0.4, 1.22, 1.58, 0.64, 0.86, 0.02); // モニター
+  add(screen, 0.0, 0.3, 1.27, 1.53, 0.635, 0.64);
+  add(white, -0.22, -0.06, 1.66, 1.82, 0.84, 0.86); // 時計
+  add(white, -0.62, -0.47, 1.64, 1.8, 0.78, 0.86); // 血圧計
+  for (const y of [1.6, 1.84]) add(steel, -1.15, 0.25, y, y + 0.02, 0.84, 0.86); // レール
+  add(white, -0.5, 0.25, 1.86, 2.04, 0.7, IN.z); // G(マスク)
+  add(white, 0.45, 1.25, 1.88, 2.22, 0.6, IN.z); // C
+  add(dark, 0.6, 1.2, 1.55, 1.75, 0.84, 0.86); // スイッチ盤
+  add(white, 0.8, 1.25, 1.1, 1.12, 0.6, IN.z); // D の棚
+  add(dark, 0.8, 1.25, 0.83, 1.1, 0.86, 0.87);
+  add(yellow, 0.48, 0.78, 1.12, 1.45, 0.66, 0.86, 0.03); // 吸引器
+  add(white, 0.42, 0.8, 0.97, 1.1, 0.6, IN.z); // E
+  add(white, 0.42, 0.8, 0.83, 0.96, 0.6, IN.z); // F
+
+  // 左壁:長いす(N は座面の下)、前の隊員席、窓の上の M、スライドドアの上の L
+  add(white, -2.35, -0.95, 0.52, 0.82, -IN.z, -0.5);
+  add(beige, -2.35, -0.95, 0.82, 0.9, -IN.z, -0.48, 0.03);
+  add(beige, -2.35, -0.95, 0.95, 1.25, -IN.z, -0.82, 0.03);
+  add(beige, -0.9, -0.5, 0.55, 0.9, -IN.z, -0.45, 0.04);
+  add(beige, -0.9, -0.5, 0.9, 1.45, -IN.z, -0.78, 0.04);
+  add(white, -1.6, 0.1, 1.95, 2.25, -IN.z, -0.6);
+  add(dark, -1.55, 0.05, 1.98, 2.2, -0.6, -0.595);
+  add(white, 0.15, 0.95, 1.95, 2.25, -IN.z, -0.6);
+  add(dark, 0.2, 0.9, 1.98, 2.2, -0.6, -0.595);
+
+  // 天井:ネット、照明、点滴のレール
+  add(mat(0x5d6670), -1.6, -0.6, 2.27, 2.3, -0.35, 0.35);
+  add(mat(0x5d6670), 0.0, 0.8, 2.27, 2.3, -0.35, 0.2);
+  for (const x of [-2.0, -0.3]) add(lamp, x - 0.25, x + 0.25, 2.29, 2.32, -0.7, -0.5);
+  for (const x of [-1.2, 0.5]) add(lamp, x - 0.2, x + 0.2, 2.29, 2.32, 0.4, 0.55);
+  add(steel, -2.2, 0.6, 2.18, 2.2, -0.05, -0.03);
+
+  // メインストレッチャー
+  add(steel, -2.3, -0.3, 0.6, 0.74, -0.3, 0.35);
+  add(mattress, -2.25, -0.35, 0.74, 0.86, -0.27, 0.32, 0.04);
+
+  // キャブ:座席、ダッシュボード、ハンドル(右ハンドル)
+  const seat = mat(0x2b3340, { roughness: 0.7 });
+  add(seat, 1.6, 2.1, 0.7, 1.05, -0.8, -0.15, 0.04);
+  add(seat, 1.6, 2.1, 0.7, 1.05, 0.15, 0.8, 0.04);
+  add(seat, 1.45, 1.6, 1.05, 1.7, -0.75, -0.2, 0.04);
+  add(seat, 1.45, 1.6, 1.05, 1.7, 0.2, 0.75, 0.04);
+  add(dark, 2.2, 2.45, 0.9, 1.15, -0.85, 0.85);
+  const wheelRing = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.025, 8, 24), dark);
+  wheelRing.position.set(2.15, 1.2, 0.47);
+  wheelRing.rotation.y = Math.PI / 2;
+  wheelRing.rotation.x = 0.4;
+  inside.add(wheelRing);
+
+  // 収納の記号(写真の扉に貼ってある A〜N)
+  const labels: [string, number, number, number, 'x' | 'z+' | 'z-'][] = [
+    ['A', 0.92, 1.88, 0.5, 'x'], ['B', 0.94, 2.1, 0.35, 'x'], ['I', 0.99, 1.83, -0.52, 'x'], ['J', 0.99, 1.46, -0.52, 'x'], ['K', 0.94, 0.98, -0.47, 'x'],
+    ['C', 1.15, 2.12, 0.595, 'z-'], ['D', 1.18, 1.18, 0.855, 'z-'], ['E', 0.75, 1.03, 0.595, 'z-'], ['F', 0.75, 0.89, 0.595, 'z-'],
+    ['G', 0.2, 1.95, 0.695, 'z-'], ['H', -1.85, 1.52, 0.595, 'z-'],
+    ['M', -1.45, 2.09, -0.59, 'z+'], ['L', 0.3, 2.09, -0.59, 'z+'], ['N', -1.65, 0.68, -0.495, 'z+'],
+  ];
+  for (const [ch, x, y, z, face] of labels) {
+    const m = letter(ch);
+    if (!m) break;
+    const p = new THREE.Mesh(new THREE.PlaneGeometry(0.07, 0.07), m);
+    p.position.set(x, y, z);
+    p.rotation.y = face === 'x' ? -Math.PI / 2 : face === 'z-' ? Math.PI : 0;
+    inside.add(p);
+  }
+  return inside;
+}
+
+/** 扉に貼る記号(白地に黒文字)。DOM の無いテストでは null。 */
+function letter(ch: string): THREE.Material | null {
+  if (typeof document === 'undefined') return null;
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const x = c.getContext('2d');
+  if (!x) return null;
+  x.fillStyle = '#fff';
+  x.fillRect(0, 0, 64, 64);
+  x.strokeStyle = '#111';
+  x.lineWidth = 4;
+  x.strokeRect(2, 2, 60, 60);
+  x.fillStyle = '#111';
+  x.font = 'bold 46px sans-serif';
+  x.textAlign = 'center';
+  x.textBaseline = 'middle';
+  x.fillText(ch, 32, 35);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return new THREE.MeshBasicMaterial({ map: t });
 }
