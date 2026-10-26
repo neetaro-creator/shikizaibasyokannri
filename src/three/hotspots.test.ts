@@ -118,4 +118,15 @@ describe('createHotspots', () => {
     hs3.highlight('m');
     for (const c of hs3.group.children) expect(c.children[0].visible).toBe(true);
   });
+
+  it('a location with exactly the same box as an earlier one (a pouch inside a bag) shares the bag box', () => {
+    const b = { x: 0, y: 1.5, z: 0, w: 0.5, h: 0.5, d: 0.5 };
+    const hs4 = createHotspots([loc('bag', '車内', b), loc('pouch', '車内', { ...b })]);
+    expect(hs4.group.children).toHaveLength(1);
+    expect(hs4.pick(new THREE.Vector2(0, 0), camera)).toBe('bag');
+    hs4.highlight('pouch');
+    expect(hs4.highlighted()).toBe('pouch');
+    expect(hs4.group.children[0].children[0].visible).toBe(true);
+    expect(hs4.centerOf('pouch')!.y).toBe(1.5);
+  });
 });

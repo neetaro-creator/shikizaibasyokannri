@@ -42,6 +42,7 @@ describe('信楽救急1(日産パラメディック)の 3D', () => {
     const placed = names.flatMap((n) => boxesOf(n).map((h, k) => ({ n: k ? `${n}#${k + 1}` : n, h })));
     for (const a of placed) for (const b of placed) {
       if (a.n >= b.n) continue;
+      if (JSON.stringify(a.h) === JSON.stringify(b.h)) continue; // かばんの中の場所はかばんと同じ箱を共有する
       const i = box(a.h).intersect(box(b.h));
       const vol = i.isEmpty() ? 0 : (i.max.x - i.min.x) * (i.max.y - i.min.y) * (i.max.z - i.min.z);
       expect(vol, `${a.n} × ${b.n}`).toBeLessThan(1e-3);
@@ -63,5 +64,12 @@ describe('信楽救急1(日産パラメディック)の 3D', () => {
     expect(door.userData.opensFor).not.toContain('A収納扉(表)');
     expect(g.userData.outsideAccess).toEqual(['右スライドドア収納']);
     expect(g.getObjectByName('door-K')!.userData.opensFor).toEqual(['K収納 小児バッグ']);
+  });
+
+  it('things inside a bag light exactly the bag (same box as the 3D bag)', () => {
+    expect(ambulanceHotspot('患者室右側 観察バック 血糖測定器')).toEqual(ambulanceHotspot('患者室右側 観察バック'));
+    expect(ambulanceHotspot('A収納 外傷バック オレンジポ―チ内')).toEqual(ambulanceHotspot('A収納 外傷バック'));
+    expect(ambulanceHotspot('A収納 オレンジポ―チ内')).toEqual(ambulanceHotspot('A収納 外傷バック'));
+    for (const n of ['気道管理バッグ メイン収納', 'セカンド収納', 'サード']) expect(ambulanceHotspot(n)).toEqual(ambulanceHotspot('気道管理バッグ'));
   });
 });

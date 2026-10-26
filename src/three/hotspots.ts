@@ -42,11 +42,23 @@ export function createHotspots(locations: Location[]): Hotspots {
     group.add(mesh);
     return mesh;
   };
+  // 箱がまったく同じ場所(かばんの中のポーチなど)は、先に出てきた場所(かばん)の箱を共有する。
+  // 押すとかばんが選ばれ、ポーチを選ぶとかばんが光る
+  const byShape = new Map<string, THREE.Mesh<THREE.BoxGeometry, THREE.MeshBasicMaterial>[]>();
   for (const l of locations) {
     if (!l.hotspot) continue;
-    boxes.set(l.id, [l.hotspot, ...(l.moreHotspots ?? [])].map((hs) => makeBox(l.id, hs)));
+    const shapes = [l.hotspot, ...(l.moreHotspots ?? [])];
+    const key = JSON.stringify(shapes);
+    const shared = byShape.get(key);
+    if (shared) {
+      boxes.set(l.id, shared);
+      continue;
+    }
+    const meshes = shapes.map((hs) => makeBox(l.id, hs));
+    byShape.set(key, meshes);
+    boxes.set(l.id, meshes);
   }
-  const all = () => [...boxes.values()].flat();
+  const all = () => [...new Set([...boxes.values()].flat())];
   let current: string | undefined;
   const raycaster = new THREE.Raycaster();
 
