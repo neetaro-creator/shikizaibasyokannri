@@ -60,3 +60,10 @@ test('キャブ内の場所も、車体の上からタップして選べる', as
   await expect(viewer).toHaveAttribute('data-highlight', /^tank1-l/);
   await expect(page.getByTestId('sheet')).toBeVisible();
 });
+
+test('救急車の車内の場所を選ぶと車体が透ける', async ({ page }) => {
+  await page.goto('./#/vehicle/ambulance1?loc=ambulance1-l12');
+  await expect(page.getByTestId('viewer')).toHaveAttribute('data-ready', 'true');
+  await expect(page.getByTestId('viewer')).toHaveAttribute('data-xray', 'true');
+  await expect(page.getByTestId('viewer')).toHaveAttribute('data-highlight', 'ambulance1-l12');
+});

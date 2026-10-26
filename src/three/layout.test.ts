@@ -20,3 +20,7 @@ it('falls back to the automatic layout for other vehicle types and unknown names
   expect(resolveHotspots([loc('車両右側', '右側')], '指揮')[0].hotspot).toBeDefined();
   expect(resolveHotspots([loc('どこか', '車外保管')], 'ポンプ')[0].hotspot).toBeUndefined();
 });
+
+it('a model may mark a location as off the vehicle (null) so no automatic box is made', () => {
+  expect(resolveHotspots([loc('救急資器材庫', '車内')], '救急')[0].hotspot).toBeUndefined();
+});
