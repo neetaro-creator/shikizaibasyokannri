@@ -37,7 +37,7 @@ const RW = { z0: 0.58, z1: 0.86 }; // 右壁の棚
 const LW = { z0: -0.86, z1: -0.58 }; // 左壁
 const PART = { x0: 1.0, x1: 1.25 }; // 前の仕切りの棚
 
-const HOTSPOTS: Record<string, Hotspot | null> = {
+const HOTSPOTS: Record<string, Hotspot | Hotspot[] | null> = {
   // キャブ
   '運転席・助手席付近': at(1.55, 2.2, 0.75, 1.42, -0.22, 0.22), // 前席の間のセンターコンソールとタブレット
   助手席後ろ: at(1.27, 1.5, 0.7, 1.6, -0.85, -0.1),
@@ -72,7 +72,14 @@ const HOTSPOTS: Record<string, Hotspot | null> = {
   E収納: at(0.42, 0.8, 0.97, 1.1, RW.z0, RW.z1),
   F収納: at(0.42, 0.8, 0.83, 0.96, RW.z0, RW.z1),
   G収納: at(-0.5, 0.25, 1.85, 2.05, RW.z0, RW.z1),
-  患者室右側: at(-1.15, 0.25, 1.63, 1.83, RW.z0, RW.z1), // 時計・血圧計・レールのあたり
+  // 患者室右側は何か所かに分かれている:頭側の座席の下(まくら・セイフキープ)、D の下の酸素ボンベ10L×2、
+  // 吸引器、時計・レールのあたり
+  患者室右側: [
+    at(0.42, 0.93, 0.52, 0.82, 0.2, RW.z1),
+    at(0.8, 1.25, 0.83, 1.1, RW.z0, RW.z1),
+    at(0.44, 0.76, 1.12, 1.45, RW.z0 + 0.04, RW.z1),
+    at(-1.15, 0.25, 1.63, 1.83, RW.z0, RW.z1),
+  ],
   '患者室右側 モニター部': at(-0.05, 0.42, 1.2, 1.6, RW.z0, RW.z1),
   '患者室右側 除細動器': at(-0.85, -0.42, 1.0, 1.45, RW.z0, RW.z1),
   '患者室右側 観察バック': at(-1.15, -1.0, 1.0, 1.36, RW.z0, RW.z1),
@@ -98,7 +105,7 @@ const HOTSPOTS: Record<string, Hotspot | null> = {
 };
 
 /** 点検表の場所名 → 3D 上の箱。null は「車の外なので置かない」、undefined は未対応。 */
-export function ambulanceHotspot(name: string): Hotspot | null | undefined {
+export function ambulanceHotspot(name: string): Hotspot | Hotspot[] | null | undefined {
   return HOTSPOTS[name];
 }
 
@@ -207,6 +214,7 @@ export function buildAmbulance(): THREE.Group {
     'A収納扉(裏)': [0.1, 1.45, 0.5],
     リアハッチ上部収納: [-1.3, 1.5, -0.15],
     'K収納 小児バッグ': [0.05, 1.35, -0.72],
+    患者室右側: [-0.75, 1.55, -0.35],
     // キャブは患者室の通路から前を見る。助手席の後ろは前席の間から振り返る
     '運転席・助手席付近': [0.3, 1.5, -0.18],
     助手席後ろ: [2.25, 1.5, 0.4],
@@ -387,6 +395,17 @@ function buildInterior(): THREE.Group {
   add(dark, 0.6, 1.2, 1.55, 1.75, 0.84, 0.86); // スイッチ盤
   add(white, 0.8, 1.25, 1.1, 1.12, 0.6, IN.z); // D の棚
   add(dark, 0.8, 1.25, 0.83, 1.1, 0.86, 0.87);
+  // D の下から見える酸素ボンベ(10L)2本と、頭側の座席の下のまくら・セイフキープ・ケース・ゴミ箱
+  for (const x of [0.92, 1.12]) {
+    const cyl = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.27, 16), dark);
+    cyl.position.set(x, 0.965, 0.79);
+    inside.add(cyl);
+    add(steel, x - 0.02, x + 0.02, 1.0, 1.08, 0.7, 0.74);
+  }
+  add(mat(0x1d1f22), 0.62, 0.88, 0.52, 0.78, 0.76, 0.86, 0.03); // まくら
+  add(white, 0.48, 0.72, 0.52, 0.76, 0.22, 0.46, 0.04); // セイフキープ
+  add(mat(0x2e4a5a), 0.6, 0.98, 0.52, 0.78, 0.6, 0.75, 0.02); // ケース
+  add(mat(0x4a3f36), 0.25, 0.55, 0.52, 0.82, 0.6, 0.86, 0.02); // ゴミ箱
   add(white, 0.86, 1.06, 1.12, 1.3, 0.64, 0.86); // D:プリンター
   add(mat(0xcfd8de, { transparent: true, opacity: 0.7 }), 0.84, 1.22, 1.32, 1.48, 0.62, 0.86); // D:透明のケース
   add(yellow, 0.44, 0.76, 1.12, 1.45, 0.66, 0.86, 0.03); // 吸引器(D の後ろ隣)

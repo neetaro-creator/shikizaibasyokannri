@@ -108,4 +108,14 @@ describe('createHotspots', () => {
     expect(hs2.nearest(new THREE.Vector3(1.6, 1, 0), 1.0, () => true)).toBe('b');
     expect(hs2.nearest(new THREE.Vector3(5, 1, 0), 1.0, () => true)).toBeUndefined();
   });
+
+  it('a location split into several boxes is picked from any of them and lights them all', () => {
+    const l = { ...loc('m', '車内', { x: 0, y: 1.5, z: 0, w: 0.5, h: 0.5, d: 0.5 }), moreHotspots: [{ x: 3, y: 1.5, z: 0, w: 0.5, h: 0.5, d: 0.5 }] };
+    const hs3 = createHotspots([l]);
+    expect(hs3.group.children).toHaveLength(2);
+    expect(hs3.nearest(new THREE.Vector3(3, 1.5, 0), 0.2, () => true)).toBe('m');
+    expect(hs3.centerOf('m')!.x).toBe(0);
+    hs3.highlight('m');
+    for (const c of hs3.group.children) expect(c.children[0].visible).toBe(true);
+  });
 });

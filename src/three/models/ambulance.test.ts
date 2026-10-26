@@ -7,6 +7,7 @@ import { AMB, ambulanceHotspot, buildAmbulance } from './ambulance';
 
 const names = Papa.parse<Record<string, string>>(readFileSync('data/locations.csv', 'utf-8'), { header: true, skipEmptyLines: true })
   .data.filter((r) => r.vehicle_id === 'ambulance1').map((r) => r.name);
+const boxesOf = (n: string): Hotspot[] => { const h = ambulanceHotspot(n); return !h ? [] : Array.isArray(h) ? h : [h]; };
 const box = (h: Hotspot) => new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(h.x, h.y, h.z), new THREE.Vector3(h.w, h.h, h.d));
 
 describe('信楽救急1(日産パラメディック)の 3D', () => {
@@ -33,25 +34,26 @@ describe('信楽救急1(日産パラメディック)の 3D', () => {
   it('every placed hotspot is inside the vehicle body', () => {
     const body = new THREE.Box3(new THREE.Vector3(-AMB.length / 2 - 0.05, 0, -AMB.width / 2 - 0.08), new THREE.Vector3(AMB.length / 2, AMB.height, AMB.width / 2 + 0.08));
     for (const n of names) {
-      const h = ambulanceHotspot(n);
-      if (h) expect(body.containsBox(box(h)), n).toBe(true);
+      for (const h of boxesOf(n)) expect(body.containsBox(box(h)), n).toBe(true);
     }
   });
 
   it('placed hotspots do not overlap each other', () => {
-    const placed = names.filter((n) => ambulanceHotspot(n));
+    const placed = names.flatMap((n) => boxesOf(n).map((h, k) => ({ n: k ? `${n}#${k + 1}` : n, h })));
     for (const a of placed) for (const b of placed) {
-      if (a >= b) continue;
-      const i = box(ambulanceHotspot(a)!).intersect(box(ambulanceHotspot(b)!));
+      if (a.n >= b.n) continue;
+      const i = box(a.h).intersect(box(b.h));
       const vol = i.isEmpty() ? 0 : (i.max.x - i.min.x) * (i.max.y - i.min.y) * (i.max.z - i.min.z);
-      expect(vol, `${a} × ${b}`).toBeLessThan(1e-3);
+      expect(vol, `${a.n} × ${b.n}`).toBeLessThan(1e-3);
     }
   });
 
   it('right sliding door is on +Z, left on -Z; 患者室右側 is on the right wall', () => {
-    expect(ambulanceHotspot('右スライドドア収納')!.z).toBeGreaterThan(0.8);
-    expect(ambulanceHotspot('左スライドドア収納')!.z).toBeLessThan(-0.8);
-    expect(ambulanceHotspot('患者室右側')!.z).toBeGreaterThan(0.5);
+    expect(boxesOf('右スライドドア収納')[0].z).toBeGreaterThan(0.8);
+    expect(boxesOf('左スライドドア収納')[0].z).toBeLessThan(-0.8);
+    // 患者室右側は4か所(座席の下・酸素ボンベ・吸引器・時計のあたり)に分かれ、どれも右寄り
+    expect(boxesOf('患者室右側')).toHaveLength(4);
+    for (const h of boxesOf('患者室右側')) expect(h.z).toBeGreaterThan(0.5);
   });
 
   it('A の扉は中の場所を選んだときに開く(扉の表では閉じたまま)、右スライドドアは外から開ける', () => {

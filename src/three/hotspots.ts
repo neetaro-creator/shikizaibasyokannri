@@ -21,16 +21,15 @@ export interface Hotspots {
 
 export function createHotspots(locations: Location[]): Hotspots {
   const group = new THREE.Group();
-  const boxes = new Map<string, THREE.Mesh<THREE.BoxGeometry, THREE.MeshBasicMaterial>>();
-  for (const l of locations) {
-    if (!l.hotspot) continue;
-    const { x, y, z, w, h, d } = l.hotspot;
+  // 場所ごとの箱。何か所かに分かれた場所は複数(先頭が主な箱)
+  const boxes = new Map<string, THREE.Mesh<THREE.BoxGeometry, THREE.MeshBasicMaterial>[]>();
+  const makeBox = (id: string, { x, y, z, w, h, d }: Hotspot) => {
     const mesh = new THREE.Mesh(
       new THREE.BoxGeometry(w, h, d),
       new THREE.MeshBasicMaterial({ ...BASE, transparent: true, depthWrite: false }),
     );
     mesh.position.set(x, y, z);
-    mesh.userData.locationId = l.id;
+    mesh.userData.locationId = id;
     mesh.renderOrder = 1;
     // 強調時だけ見せる輪郭線
     const edges = new THREE.LineSegments(
@@ -40,9 +39,14 @@ export function createHotspots(locations: Location[]): Hotspots {
     edges.visible = false;
     edges.renderOrder = 11;
     mesh.add(edges);
-    boxes.set(l.id, mesh);
     group.add(mesh);
+    return mesh;
+  };
+  for (const l of locations) {
+    if (!l.hotspot) continue;
+    boxes.set(l.id, [l.hotspot, ...(l.moreHotspots ?? [])].map((hs) => makeBox(l.id, hs)));
   }
+  const all = () => [...boxes.values()].flat();
   let current: string | undefined;
   const raycaster = new THREE.Raycaster();
 
@@ -51,7 +55,7 @@ export function createHotspots(locations: Location[]): Hotspots {
     pick(ndc, camera, occluders = [], seeThrough = () => false) {
       group.updateMatrixWorld();
       raycaster.setFromCamera(ndc, camera);
-      const hit = raycaster.intersectObjects([...boxes.values()], false)[0];
+      const hit = raycaster.intersectObjects(all(), false)[0];
       if (!hit) return undefined;
       const id: string = hit.object.userData.locationId;
       if (seeThrough(id)) return id; // キャブ内など、車体を透かして選んでよい場所
@@ -62,7 +66,8 @@ export function createHotspots(locations: Location[]): Hotspots {
     nearest(p, radius, accept) {
       let best: string | undefined;
       let bestD = radius;
-      for (const [id, m] of boxes) {
+      for (const m of all()) {
+        const id: string = m.userData.locationId;
         if (!accept(id)) continue;
         const d = m.position.distanceTo(p);
         if (d <= bestD) [best, bestD] = [id, d];
@@ -70,24 +75,23 @@ export function createHotspots(locations: Location[]): Hotspots {
       return best;
     },
     highlight(id) {
-      for (const m of boxes.values()) {
+      for (const m of all()) {
         m.material.setValues({ ...BASE, depthTest: true });
         m.renderOrder = 1;
         m.children[0].visible = false;
       }
       current = id && boxes.has(id) ? id : undefined;
-      if (current) {
-        // 車内の場所でも車体を透かして見えるよう、奥行き判定を切って最後に描く
-        const m = boxes.get(current)!;
+      // 車内の場所でも車体を透かして見えるよう、奥行き判定を切って最後に描く
+      for (const m of current ? boxes.get(current)! : []) {
         m.material.setValues({ ...HL, depthTest: false });
         m.renderOrder = 10;
         m.children[0].visible = true;
       }
     },
     highlighted: () => current,
-    centerOf: (id) => boxes.get(id)?.position.clone(),
+    centerOf: (id) => boxes.get(id)?.[0].position.clone(),
     setHotspot(id, { x, y, z, w, h, d }) {
-      const m = boxes.get(id);
+      const m = boxes.get(id)?.[0];
       if (!m) return;
       m.geometry.dispose();
       m.geometry = new THREE.BoxGeometry(w, h, d);
@@ -99,7 +103,7 @@ export function createHotspots(locations: Location[]): Hotspots {
     update(timeMs) {
       if (!current) return;
       const k = 0.5 + 0.5 * Math.sin((timeMs / 1000) * Math.PI * 2);
-      boxes.get(current)!.material.opacity = 0.25 + 0.5 * k;
+      for (const m of boxes.get(current)!) m.material.opacity = 0.25 + 0.5 * k;
     },
   };
 }
