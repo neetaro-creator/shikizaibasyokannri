@@ -62,7 +62,7 @@ body {
   padding-bottom: calc(76px + env(safe-area-inset-bottom));
   -webkit-tap-highlight-color: transparent;
 }
-body.sheet-open { padding-bottom: calc(40vh + 76px + env(safe-area-inset-bottom)); }
+body.sheet-open { overflow: hidden; overscroll-behavior: none; }
 a { color: inherit; }
 :focus-visible { outline: 2px solid var(--hl); outline-offset: 2px; border-radius: 6px; }
 button { font: inherit; color: inherit; }
@@ -237,7 +237,7 @@ body[data-route="vehicle"] main { padding-top: 0; }
 .chips button[data-loc].on { background: var(--hl); color: #111; border-color: var(--hl); }
 .sheet {
   position: fixed; left: 8px; right: 8px; bottom: calc(68px + env(safe-area-inset-bottom)); z-index: 19;
-  max-height: 38vh; overflow-y: auto; overscroll-behavior: contain;
+  max-height: 38vh; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y;
   background: var(--glass); backdrop-filter: blur(16px) saturate(1.2); -webkit-backdrop-filter: blur(16px) saturate(1.2);
   border: 1px solid var(--line); border-top: 2px solid var(--hl); border-radius: 18px;
   box-shadow: var(--shadow), 0 -4px 30px var(--glow); padding: 6px 14px 10px;
@@ -266,3 +266,11 @@ body[data-route="vehicle"] main { padding-top: 0; }
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }
+
+/* 場所を選んでいる間は3Dを縦に詰め、一覧を広げる(一覧の上端が3Dのすぐ下に来る) */
+body.sheet-open .viewer { height: 30vh; min-height: 200px; }
+body.sheet-open .hud-note, body.sheet-open .hud { display: none; }
+body.sheet-open .sheet { height: calc(70vh - 128px - env(safe-area-inset-bottom)); max-height: none; }
+.sheet .nav { flex: none; width: 40px; height: 44px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); font-size: 24px; line-height: 1; cursor: pointer; }
+.sheet-head strong { font-size: 17px; }
+.sheet a { -webkit-user-drag: none; user-select: none; -webkit-touch-callout: none; }

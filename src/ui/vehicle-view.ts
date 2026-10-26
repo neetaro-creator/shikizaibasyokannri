@@ -36,6 +36,12 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
   let vehicleObject: THREE.Object3D | undefined;
   let disposed = false;
   let current: Location | undefined;
+  // 場所ボタンと同じ並び(左右スワイプ・‹ › で送る順番)
+  const ordered = groups.flatMap((g) => locs.filter((l) => l.group === g));
+  const step = (d: number) => {
+    const i = ordered.findIndex((l) => l.id === current?.id);
+    select(ordered[(i + d + ordered.length) % ordered.length].id);
+  };
 
   /** キャブ内の場所を選んだときは車体を透かす(中の座席などは透かさない)。 */
   function setXray(on: boolean) {
@@ -71,15 +77,19 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
     const contents = itemsAt(db, loc.id);
     sheet.replaceChildren(...[
       h('div', { class: 'sheet-head' },
-        h('div', {}, h('span', { class: 'kicker' }, `${v.name} ・ ${contents.length}品目`), h('strong', {}, loc.name)),
+        h('button', { type: 'button', class: 'nav', 'aria-label': '前の場所', onclick: () => step(-1) }, '‹'),
+        h('div', {}, h('span', { class: 'kicker' }, `${v.name.replace(/^信楽/, '')} ${ordered.indexOf(loc) + 1}/${ordered.length} ・ ${contents.length}品目`), h('strong', {}, loc.name)),
+        h('button', { type: 'button', class: 'nav', 'aria-label': '次の場所', onclick: () => step(1) }, '›'),
         h('button', { type: 'button', class: 'close', 'aria-label': '閉じる', onclick: () => select(undefined) }, '×')),
       loc.hotspot ? null : h('p', { class: 'muted' }, 'この場所は3D上には表示されません(車外保管など)。'),
-      h('ul', { class: 'list' }, contents.map((c) => h('li', {}, h('a', { href: itemHref(c.item.id), class: 'row' },
+      h('ul', { class: 'list' }, contents.map((c) => h('li', {}, h('a', { href: itemHref(c.item.id), class: 'row', draggable: 'false' },
         h('span', { class: 'row-main' }, c.item.name),
         h('span', { class: 'badge' }, c.qty !== undefined ? String(c.qty) : c.qtyNote ?? ''))))),
     ].filter((x): x is HTMLElement => x !== null));
+    if (sheet.hidden) window.scrollTo(0, 0); // 開いたときは3Dが見える位置へ
     sheet.hidden = false;
-    document.body.classList.add('sheet-open');
+    sheet.scrollTop = 0;
+    if (!align) document.body.classList.add('sheet-open'); // 位置合わせモードは下のパネルを使うので背面を止めない
     const center = hotspots?.centerOf(loc.id);
     if (three && center) {
       // 箱の面の向き(側面なら横、後部なら後ろ)から斜め上に引いて見る
@@ -88,8 +98,8 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
       if (dir.lengthSq() < 0.01) dir.set(1, 0, 1);
       dir.normalize().add(new THREE.Vector3(0, 0.6, 0)).normalize();
       // 下からシートがかぶるので、注視点を下げて箱を画面上寄りに出す
-      const target = center.clone().add(new THREE.Vector3(0, -1.2, 0));
-      three.flyTo(target.clone().add(dir.multiplyScalar(12.5)), target);
+      const target = center.clone(); // 一覧は3Dの下に出るので、光る箱を画面の中央に置く
+      three.flyTo(target.clone().add(dir.multiplyScalar(10)), target);
     }
   }
 
@@ -153,7 +163,31 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
   }
 
   if (focus) requestAnimationFrame(() => select(focus));
+  // 一覧を左右にスワイプ → 次/前の場所(縦の動きは一覧のスクロールに任せる)
+  let swipeStart: { x: number; y: number } | undefined;
+  let swiped = false;
+  sheet.addEventListener('pointerdown', (e) => { swipeStart = { x: e.clientX, y: e.clientY }; swiped = false; });
+  sheet.addEventListener('pointerup', (e) => {
+    if (!swipeStart) return;
+    const dx = e.clientX - swipeStart.x, dy = e.clientY - swipeStart.y;
+    swipeStart = undefined;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      swiped = true;
+      step(dx < 0 ? 1 : -1);
+    }
+  });
+  // スワイプの指を離したときに、下の品目リンクが押されたことにしない
+  sheet.addEventListener('click', (e) => { if (swiped) { e.preventDefault(); e.stopPropagation(); swiped = false; } }, true);
+  // 一覧を開いている間は背面を動かさない:一覧の外、または一覧がスクロール不要のときは指の移動を打ち消す
+  const lockScroll = (e: TouchEvent) => {
+    if (sheet.hidden || align) return;
+    const inSheet = sheet.contains(e.target as Node);
+    if (!inSheet || sheet.scrollHeight <= sheet.clientHeight) e.preventDefault();
+  };
+  document.addEventListener('touchmove', lockScroll, { passive: false });
+
   return () => {
+    document.removeEventListener('touchmove', lockScroll);
     disposed = true;
     document.body.classList.remove('sheet-open');
     three?.dispose();

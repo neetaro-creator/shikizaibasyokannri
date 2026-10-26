@@ -8,14 +8,18 @@ test('検索結果に場所と数の内訳が出る', async ({ page }) => {
   await expect(first).toContainText('5');
 });
 
-test('下部シートを開いたままでも末尾の場所ボタンを押せる', async ({ page }) => {
+test('一覧を開いたままでも、‹ で末尾の場所へ移れる(× で閉じればボタンも押せる)', async ({ page }) => {
   await page.goto('./#/vehicle/command1');
   await expect(page.getByTestId('viewer')).toHaveAttribute('data-ready', 'true');
   const buttons = page.locator('[data-loc]');
+  const last = await buttons.last().getAttribute('data-loc');
   await buttons.first().click();
   await expect(page.getByTestId('sheet')).toBeVisible();
-  await buttons.last().click({ timeout: 3000 });
-  await expect(buttons.last()).toHaveClass(/on/);
+  await page.getByRole('button', { name: '前の場所' }).click(); // 先頭から ‹ で末尾へ
+  await expect(page).toHaveURL(new RegExp(`loc=${last}`));
+  await page.getByRole('button', { name: '閉じる' }).click();
+  await buttons.first().click({ timeout: 3000 });
+  await expect(buttons.first()).toHaveClass(/on/);
 });
 
 test('戻ると一覧のスクロール位置が戻る', async ({ page }) => {
