@@ -12,9 +12,10 @@ test('場所を選ぶと3Dは縦に詰まり、一覧が画面の半分近くま
   await open(page, 'tank1-l21');
   const vh = await page.evaluate(() => window.innerHeight);
   const viewer = (await page.getByTestId('viewer').boundingBox())!;
-  const sheet = (await page.getByTestId('sheet').evaluate((e) => getComputedStyle(e).maxHeight));
+  const sheet = (await page.getByTestId('sheet').boundingBox())!;
   expect(viewer.height).toBeLessThan(vh * 0.4);
-  expect(parseFloat(sheet)).toBeGreaterThan(vh * 0.45);
+  expect(sheet.height).toBeGreaterThan(vh * 0.45); // 品目が少なくても一覧の枠は広い
+  expect(sheet.y - (viewer.y + viewer.height)).toBeLessThan(16); // 一覧の上端は3Dのすぐ下
 });
 
 test('一覧を開いている間は背面がスクロールしない(一覧の外のスワイプは打ち消す)', async ({ page }) => {
