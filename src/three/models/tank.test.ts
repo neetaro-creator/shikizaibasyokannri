@@ -70,6 +70,29 @@ describe('信楽タンク1 の 3D', () => {
     }
   });
 
+  it('cab interior follows the photos: SCBA wall at the back, boxes hang behind the front seats', () => {
+    const scba = hs('キャビン後部'), netBack = hs('後部座席上部(後)'), netFront = hs('後部座席上部(前)');
+    const cam = hs('後部座席上部(前) デジカメBOX'), survey = hs('後部座席上部(前) 現調用BOX');
+    expect(scba.x).toBeLessThan(1.4); // 後ろの壁ぎわ
+    expect(netBack.x).toBeLessThan(netFront.x);
+    expect(netFront.z).toBeLessThan(0); // 左の網棚
+    for (const b of [cam, survey]) {
+      expect(Math.abs(b.z)).toBeLessThan(0.45); // 中央寄りの天井の手すり
+      expect(b.x).toBeGreaterThan(netBack.x);
+    }
+    expect(cam.z).toBeGreaterThan(survey.z - 0.5);
+  });
+
+  it('cab interior hotspots do not overlap each other', () => {
+    const cabNames = names.filter((n) => /運転席|助手席|後部座席|コンソール|キャビン後部|空気呼吸器下/.test(n));
+    for (const a of cabNames) for (const b of cabNames) {
+      if (a >= b) continue;
+      const i = box(hs(a)).intersect(box(hs(b)));
+      const vol = i.isEmpty() ? 0 : (i.max.x - i.min.x) * (i.max.y - i.min.y) * (i.max.z - i.min.z);
+      expect(vol, `${a} × ${b}`).toBeLessThan(1e-3);
+    }
+  });
+
   it('body-surface hotspots do not overlap each other', () => {
     const surface = names.filter((n) => /^車両/.test(n));
     for (const a of surface) for (const b of surface) {
@@ -86,4 +109,21 @@ describe('信楽タンク1 の 3D', () => {
       if (p?.width !== undefined) expect(Math.min(p.width, p.height!, p.depth!)).toBeGreaterThan(0);
     });
   });
+});
+
+it('cab interior props never share a material with the body (so X-ray keeps them solid)', () => {
+  const g = buildTankTruck();
+  const inside = g.children.find((c) => c.userData.interior)!;
+  expect(inside).toBeDefined();
+  const mats = (root: THREE.Object3D, skip?: THREE.Object3D) => {
+    const set = new Set<THREE.Material>();
+    root.traverse((o) => {
+      if (skip && (o === skip || o.parent === skip)) return;
+      const m = (o as THREE.Mesh).material as THREE.Material | undefined;
+      if (m) set.add(m);
+    });
+    return set;
+  };
+  const body = mats(g, inside);
+  for (const m of mats(inside)) expect(body.has(m)).toBe(false);
 });

@@ -35,3 +35,11 @@ test('3Dに置かない場所(車外保管)を選んでも一覧で示される'
   await expect(page.getByTestId('sheet')).toContainText('3D上には表示されません');
   await expect(page.getByTestId('viewer')).not.toHaveAttribute('data-highlight', /.+/);
 });
+
+test('キャブ内の場所を選ぶと車体が透けて中が見え、外の場所では元に戻る', async ({ page }) => {
+  await page.goto('./#/vehicle/tank1?loc=tank1-l08');
+  await expect(page.getByTestId('viewer')).toHaveAttribute('data-ready', 'true');
+  await expect(page.getByTestId('viewer')).toHaveAttribute('data-xray', 'true');
+  await page.getByRole('button', { name: '車両右側前部シャッター' }).click();
+  await expect(page.getByTestId('viewer')).not.toHaveAttribute('data-xray', 'true');
+});

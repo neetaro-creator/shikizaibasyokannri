@@ -35,9 +35,28 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
   let hotspots: ReturnType<typeof createHotspots> | undefined;
   let vehicleObject: THREE.Object3D | undefined;
   let disposed = false;
+  let current: Location | undefined;
+
+  /** キャブ内の場所を選んだときは車体を透かす(中の座席などは透かさない)。 */
+  function setXray(on: boolean) {
+    if (on) viewer.dataset.xray = 'true';
+    else delete viewer.dataset.xray;
+    vehicleObject?.traverse((o) => {
+      if (o.userData.interior) return;
+      const m = (o as THREE.Mesh).material as THREE.Material | undefined;
+      if (!m || (o.parent && o.parent.userData.interior)) return;
+      m.userData.base ??= { transparent: m.transparent, opacity: m.opacity, depthWrite: m.depthWrite };
+      const b = m.userData.base;
+      m.transparent = on || b.transparent;
+      m.opacity = on ? 0.1 : b.opacity;
+      m.depthWrite = on ? false : b.depthWrite;
+    });
+  }
 
   function select(id?: string) {
     const loc = locs.find((l) => l.id === id);
+    current = loc;
+    setXray(loc?.group === 'キャビン');
     history.replaceState(null, '', vehicleHref(v.id, loc?.id) + (align ? `${loc ? '&' : '?'}align=1` : ''));
     panel?.show(loc);
     root.querySelectorAll<HTMLButtonElement>('[data-loc]').forEach((b) => b.classList.toggle('on', b.dataset.loc === loc?.id));
@@ -64,7 +83,8 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
     const center = hotspots?.centerOf(loc.id);
     if (three && center) {
       // 箱の面の向き(側面なら横、後部なら後ろ)から斜め上に引いて見る
-      const dir = new THREE.Vector3(center.x * 0.3, 0, center.z);
+      // キャブ内は透かして斜め上から、それ以外は箱の面の向きから
+      const dir = loc.group === 'キャビン' ? new THREE.Vector3(0.7, 0, 0.9) : new THREE.Vector3(center.x * 0.3, 0, center.z);
       if (dir.lengthSq() < 0.01) dir.set(1, 0, 1);
       dir.normalize().add(new THREE.Vector3(0, 0.6, 0)).normalize();
       // 下からシートがかぶるので、注視点を下げて箱を画面上寄りに出す
@@ -90,6 +110,7 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
       if (disposed) return disposeObject(object);
       vehicleObject = object;
       s.scene.add(object);
+      setXray(current?.group === 'キャビン');
       // 車両の大きさに合わせて初期カメラを引く(場所を指定して開いたときはその場所へ寄る)
       if (!focus) {
         const b = new THREE.Box3().setFromObject(object);

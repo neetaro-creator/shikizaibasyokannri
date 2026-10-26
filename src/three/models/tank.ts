@@ -59,20 +59,22 @@ const HOTSPOTS: Record<string, Hotspot> = {
   // 残り(左寄り前方にバスケット担架、中央後ろにナイトスキャンチーフ、右端に吸管)は車両上部
   '車両上部 左側': { x: (TANK.rear + TANK.bodyFront) / 2, y: TANK.bodyTop + 0.12, z: (-HALF + 0.03 + ROOF_RACK_Z) / 2, w: TANK.bodyFront - TANK.rear - 0.1, h: 0.36, d: ROOF_RACK_Z - (-HALF + 0.03) },
   車両上部: { x: (TANK.rear + TANK.bodyFront) / 2, y: TANK.bodyTop, z: (ROOF_RACK_Z + 0.03 + HALF - 0.03) / 2, w: TANK.bodyFront - TANK.rear - 0.1, h: T, d: HALF - 0.03 - (ROOF_RACK_Z + 0.03) },
-  // キャブ内(運転席は右 +Z、助手席は左 -Z)
-  運転席上部: cab(2.9, 2.35, 0.55, 0.6, 0.3, 0.9),
-  運転席下部: cab(2.95, 0.95, 0.55, 0.5, 0.3, 0.9),
-  '運転席下部 工具(筒)': cab(2.45, 0.95, 0.55, 0.4, 0.3, 0.9),
-  中央コンソールボックス: cab(2.7, 1.35, 0, 0.6, 0.35, 0.35),
-  '助手席 上部': cab(2.9, 2.35, -0.55, 0.6, 0.3, 0.9),
-  '助手席 前': cab(3.2, 1.6, -0.55, 0.35, 0.4, 0.9),
-  助手席: cab(2.55, 1.4, -0.55, 0.6, 0.6, 0.9),
-  '後部座席上部(前) デジカメBOX': cab(1.75, 2.35, 0.6, 0.5, 0.3, 0.8),
-  '後部座席上部(前) 現調用BOX': cab(1.75, 2.35, -0.6, 0.5, 0.3, 0.8),
-  '後部座席上部(前)': cab(1.75, 2.35, 0, 0.5, 0.3, 0.3),
-  '後部座席上部(後)': cab(1.2, 2.35, 0, 0.4, 0.3, 2.0),
-  キャビン後部: cab(1.4, 1.55, 0, 0.8, 0.8, 2.0),
-  空気呼吸器下: cab(1.4, 0.95, 0, 0.8, 0.3, 2.0),
+  // キャブ内(運転席は右 +Z、助手席は左 -Z)。車内の写真より:
+  // 前席の間に無線機と書類入れ、前席のすぐ後ろの天井の手すりにデジカメBOX・現調用BOX、
+  // 左壁上の網棚(前寄り)、後ろの壁に空気呼吸器4基とその上の網棚、座席の下に予備ボンベ
+  運転席上部: cab(3.05, 2.35, 0.55, 0.5, 0.25, 0.8),
+  運転席下部: cab(2.55, 0.95, 0.55, 0.5, 0.3, 0.7),
+  '運転席下部 工具(筒)': cab(3.05, 0.95, 0.55, 0.4, 0.3, 0.7),
+  中央コンソールボックス: cab(2.45, 1.4, 0, 0.75, 0.65, 0.36),
+  '助手席 上部': cab(3.05, 2.35, -0.55, 0.5, 0.25, 0.8),
+  '助手席 前': cab(3.25, 1.55, -0.6, 0.3, 0.4, 0.7),
+  助手席: cab(2.55, 1.4, -0.62, 0.6, 0.6, 0.7),
+  '後部座席上部(前) デジカメBOX': cab(1.95, 2.38, 0.32, 0.24, 0.22, 0.24),
+  '後部座席上部(前) 現調用BOX': cab(1.95, 2.38, 0.05, 0.24, 0.22, 0.24),
+  '後部座席上部(前)': cab(1.7, 2.4, -0.68, 0.55, 0.25, 0.5),
+  '後部座席上部(後)': cab(1.02, 2.42, 0, 0.3, 0.25, 2.0),
+  キャビン後部: cab(1.12, 1.65, 0, 0.32, 0.8, 2.0),
+  空気呼吸器下: cab(1.2, 0.95, 0, 0.5, 0.3, 2.0),
 };
 
 /** 点検表の場所名 → 3D 上の箱。対応がなければ undefined。 */
@@ -112,6 +114,27 @@ export function buildTankTruck(): THREE.Group {
   g.add(span(red, front - 0.15, front + 0.1, 0.42, 0.78, -HALF + 0.02, HALF - 0.02, 0.05)); // バンパー
   g.add(span(checker, front + 0.08, front + 0.16, 0.6, 0.78, -1.0, 1.0)); // バンパー上の縞鋼板
   g.add(span(steel, front + 0.1, front + 0.11, 0.44, 0.58, -0.28, 0.28)); // ナンバー台
+
+  // ── キャブ内(車体を透かしたときに見える。interior は透かさない) ──
+  const inside = new THREE.Group();
+  inside.userData.interior = true;
+  const seat = new THREE.MeshStandardMaterial({ color: 0x2b3340, roughness: 0.7 });
+  const grey = new THREE.MeshStandardMaterial({ color: 0x8c939b, roughness: 0.6 });
+  // 車体の材質と共有すると一緒に透けるので、キャブ内は専用の材質を使う
+  const black = new THREE.MeshStandardMaterial({ color: 0x18191b, roughness: 0.8 });
+  const rail = new THREE.MeshStandardMaterial({ color: 0xc9ced4, roughness: 0.3, metalness: 0.85 });
+  for (const z of [0.6, -0.62]) {
+    inside.add(span(seat, 2.3, 2.85, 1.05, 1.25, z - 0.3, z + 0.3, 0.05)); // 前席の座面
+    inside.add(span(seat, 2.25, 2.4, 1.25, 2.1, z - 0.28, z + 0.28, 0.05)); // 背もたれ
+  }
+  inside.add(span(grey, 2.1, 2.8, 1.0, 1.75, -0.17, 0.17, 0.03)); // コンソールと書類入れ
+  inside.add(span(seat, 1.0, 1.5, 0.8, 1.15, -1.0, 1.0, 0.05)); // 後席(下に予備ボンベ)
+  for (const z of [-0.75, -0.25, 0.25, 0.75]) inside.add(box(0.18, 0.62, 0.32, black, 1.03, 1.6, z, 0.04)); // 空気呼吸器
+  inside.add(span(grey, 0.88, 1.18, 2.3, 2.55, -1.0, 1.0)); // 後ろの網棚
+  inside.add(span(grey, 1.45, 2.0, 2.3, 2.55, -1.0, -0.4)); // 左の網棚
+  inside.add(box(0.04, 0.04, 1.8, rail, 1.95, 2.28, 0)); // 前席後ろの手すり
+  for (const z of [0.32, 0.05]) inside.add(box(0.2, 0.2, 0.2, grey, 1.95, 2.38, z)); // デジカメBOX・現調用BOX
+  g.add(inside);
 
   // ── 荷台 ──
   g.add(span(red, rear, bodyFront, MID_SHUTTER.y0 - 0.05, bodyTop, -HALF, HALF, 0.03)); // 上部の箱
