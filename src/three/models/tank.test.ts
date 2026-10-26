@@ -34,10 +34,23 @@ describe('信楽タンク1 の 3D', () => {
     }
   });
 
-  it('rear shutter upper is above lower, both on the rear face', () => {
+  it('rear shutter: 上段 is only the top shelf, 下段 covers the cutter shelf and the floor', () => {
     const u = hs('車両後部シャッター 上段'), l = hs('車両後部シャッター 下段');
     for (const h of [u, l]) expect(h.x).toBeCloseTo(-TANK.length / 2, 1);
-    expect(u.y).toBeGreaterThan(l.y);
+    expect(u.y - u.h / 2).toBeGreaterThan(2.0); // 最上段の箱だけ
+    expect(l.h).toBeGreaterThan(u.h * 2);
+  });
+
+  it('searchlight and wheel chocks (車両右側/左側) sit in the gap between cab and body', () => {
+    expect(TANK.cabRear - TANK.bodyFront).toBeGreaterThan(0.2);
+    for (const [n, sign] of [['車両右側', 1], ['車両左側', -1]] as const) {
+      const h = hs(n);
+      expect(h.x - h.w / 2).toBeGreaterThanOrEqual(TANK.bodyFront - 0.01);
+      expect(h.x + h.w / 2).toBeLessThanOrEqual(TANK.cabRear + 0.01);
+      expect(sign * h.z).toBeGreaterThan(0.5);
+      expect(h.y - h.h / 2).toBeLessThan(0.8); // 下の歯止めから
+      expect(h.y + h.h / 2).toBeGreaterThan(2.6); // 上のライトまで
+    }
   });
 
   it('driver side is right (+Z), passenger side left (-Z), all cab spots inside the cab', () => {

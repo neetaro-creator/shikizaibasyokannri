@@ -12,7 +12,7 @@ export const TANK = {
   front: 3.5,
   rear: -3.5,
   cabRear: 0.85,
-  bodyFront: 0.8,
+  bodyFront: 0.5, // キャブとの間に 0.35m のすき間(はしご・サーチライト・歯止め)
   bodyTop: 2.95,
   frontAxle: 2.6,
   rearAxle: -1.25,
@@ -22,14 +22,16 @@ export const TANK = {
 const HALF = TANK.width / 2;
 type Rect = { x0: number; x1: number; y0: number; y1: number };
 // 側面(左右同じ位置)
-const FRONT_SHUTTER: Rect = { x0: -0.55, x1: 0.7, y0: 0.9, y1: 2.5 };
-const DRAWER: Rect = { x0: -0.55, x1: 0.7, y0: 0.42, y1: 0.86 };
-const MID_SHUTTER: Rect = { x0: -1.95, x1: -0.6, y0: 1.32, y1: 2.5 };
-const REAR_SHUTTER: Rect = { x0: -3.42, x1: -2.0, y0: 1.32, y1: 2.5 };
+const FRONT_SHUTTER: Rect = { x0: -0.75, x1: 0.42, y0: 0.9, y1: 2.5 };
+const DRAWER: Rect = { x0: -0.75, x1: 0.42, y0: 0.42, y1: 0.86 };
+const MID_SHUTTER: Rect = { x0: -2.05, x1: -0.8, y0: 1.32, y1: 2.5 };
+const REAR_SHUTTER: Rect = { x0: -3.42, x1: -2.1, y0: 1.32, y1: 2.5 };
 const REAR_SPLIT = 1.92; // 後部シャッターの上段/下段の境
-const LOWER_PANEL: Rect = { x0: -3.42, x1: -2.0, y0: 0.62, y1: 1.26 };
-// 後部
-const BACK = { z0: -0.75, z1: 0.75, y0: 0.55, y1: 2.6, split: 1.6 };
+const LOWER_PANEL: Rect = { x0: -3.42, x1: -2.1, y0: 0.62, y1: 1.26 };
+// キャブと荷台のすき間
+const GAP = { x0: 0.5, x1: 0.85 };
+// 後部(実物は3段:最上段の箱=上段、エンジンカッターの棚と可搬ポンプの床=下段)
+const BACK = { z0: -0.75, z1: 0.75, y0: 0.55, y1: 2.6, split: 2.2 };
 
 const T = 0.12;
 const side = (r: Rect, sign: 1 | -1): Hotspot => ({
@@ -41,8 +43,8 @@ const sideSpots = (s: '右' | '左', sign: 1 | -1): Record<string, Hotspot> => (
   [`車両${s}側中央シャッター`]: side(MID_SHUTTER, sign),
   [`車両${s}側後部シャッター 上段`]: side({ ...REAR_SHUTTER, y0: REAR_SPLIT + 0.01 }, sign),
   [`車両${s}側後部シャッター 下段`]: side({ ...REAR_SHUTTER, y1: REAR_SPLIT - 0.01 }, sign),
-  // 「車両右側」「車両左側」(サーチライト・車輪止め):後部シャッター下の収納とみなす
-  [`車両${s}側`]: side(LOWER_PANEL, sign),
+  // 「車両右側」「車両左側」:キャブとのすき間の上にサーチライト、下に歯止め
+  [`車両${s}側`]: { x: (GAP.x0 + GAP.x1) / 2, y: 1.75, z: sign * (HALF - 0.2), w: GAP.x1 - GAP.x0 - 0.02, h: 2.4, d: 0.4 },
 });
 const cab = (x: number, y: number, z: number, w: number, h: number, d: number): Hotspot => ({ x, y, z, w, h, d });
 
@@ -129,10 +131,13 @@ export function buildTankTruck(): THREE.Group {
     // 上部の帯:白い作業灯・赤い警告灯
     for (const [x0, x1] of [[-1.85, -0.4], [-3.0, -2.15]]) g.add(span(whiteLamp, x0, x1, 2.7, 2.8, zf, zf + s * 0.02));
     for (const x of [0.45, -3.3]) g.add(span(redLamp, x - 0.12, x + 0.12, 2.68, 2.84, zf, zf + s * 0.03));
-    // 車体前端のはしご
-    g.add(box(0.035, 1.95, 0.035, steel, bodyFront + 0.02, 1.95, zf + s * 0.04));
-    g.add(box(0.035, 1.95, 0.035, steel, bodyFront - 0.28, 1.95, zf + s * 0.04));
-    for (let y = 1.2; y <= 2.9; y += 0.3) g.add(box(0.3, 0.03, 0.03, steel, bodyFront - 0.13, y, zf + s * 0.04));
+    // すき間:はしご(外向き)、上にサーチライト、下に歯止め
+    for (const x of [GAP.x0 + 0.04, GAP.x1 - 0.04]) g.add(box(0.035, 2.3, 0.035, steel, x, 1.85, zf + s * 0.02));
+    for (let y = 0.85; y <= 2.9; y += 0.32) g.add(box(GAP.x1 - GAP.x0 - 0.08, 0.03, 0.03, steel, (GAP.x0 + GAP.x1) / 2, y, zf + s * 0.02));
+    g.add(box(0.04, 0.6, 0.04, steel, (GAP.x0 + GAP.x1) / 2, 2.55, zf - s * 0.2)); // ライトの支柱
+    g.add(box(0.14, 0.2, 0.1, whiteLamp, (GAP.x0 + GAP.x1) / 2, 2.85, zf - s * 0.2, 0.02)); // サーチライト
+    g.add(span(wood, GAP.x0 + 0.06, GAP.x1 - 0.06, 0.55, 0.8, zf - s * 0.35, zf - s * 0.05)); // 歯止め
+    g.add(span(red, GAP.x0 + 0.05, GAP.x1 - 0.05, 0.55, 0.62, zf - s * 0.36, zf - s * 0.04)); // 歯止めの金具
   }
 
   // 屋根:手すりと積載はしご
