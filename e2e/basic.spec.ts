@@ -55,13 +55,16 @@ test('詳細:合計は数字+数で書かれていない分の中身、車両ご
   await page.screenshot({ path: 'e2e/screens/item-total.png', fullPage: true });
 });
 
-test('検索と探すは一つの画面:タブは3つ、検索画面に分類と車両が並ぶ', async ({ page }) => {
+test('検索と探すは一つの画面:タブは3つ、検索画面は分類と車両の絞り込みだけ(よく探す品・車両の場所は出さない)', async ({ page }) => {
   await page.goto('./');
   await expect(page.locator('nav.tabs a')).toHaveText(['検索', '車両', '総数']);
   await page.getByRole('button', { name: /救助/ }).click();
   await expect(page).toHaveURL(/cat=/);
   await expect(page.locator('.grid .card').first()).toBeVisible();
-  await expect(page.getByRole('link', { name: /信楽タンク1/ }).first()).toBeVisible();
+  await expect(page.getByRole('checkbox', { name: '信楽タンク1' })).toBeVisible();
+  await expect(page.getByText('よく探す品')).toHaveCount(0);
+  await expect(page.getByText('車両の場所から')).toHaveCount(0);
+  await expect(page.getByRole('link', { name: /信楽タンク1/ })).toHaveCount(0);
   // 入力すると検索結果に切り替わり、分類の一覧は隠れる
   await page.getByRole('searchbox').fill('カラビナ');
   await expect(page.getByTestId('result').first()).toBeVisible();

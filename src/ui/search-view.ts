@@ -1,7 +1,7 @@
-import { formatTotal, search, summarize, totals } from '../data/query';
+import { formatTotal, search, summarize } from '../data/query';
 import type { Db } from '../data/types';
-import { h, itemHref, vehicleHref } from './dom';
-import { icon, silhouette } from './icons';
+import { h, itemHref } from './dom';
+import { icon } from './icons';
 import { shortName, vehicleTag } from './vehicle-tag';
 
 let lastQuery = '';
@@ -23,17 +23,6 @@ const saveChosen = () => {
 };
 /** 選んだ車両に積んでいる品か(未選択なら全部)。 */
 const onChosen = (db: Db, itemId: string) => !chosen.size || summarize(db, itemId, chosen).breakdown.length > 0;
-
-/** 何台にも積んでいる品を「よく探す品」として出す。 */
-function popular(db: Db) {
-  return totals(db)
-    .filter((s) => onChosen(db, s.item.id))
-    .map((s) => ({ s, n: new Set(s.breakdown.map((b) => b.vehicle.id)).size }))
-    .filter((x) => x.n >= 3)
-    .sort((a, b) => b.n - a.n || b.s.total - a.s.total)
-    .slice(0, 10)
-    .map((x) => x.s.item);
-}
 
 /** 分類タイルと、選んだ分類の品カード(名前が出てこないとき用)。 */
 function categoryBrowser(db: Db, selected?: string) {
@@ -60,22 +49,13 @@ function categoryBrowser(db: Db, selected?: string) {
     const on = tiles.querySelector<HTMLButtonElement>('button.on');
     if (on) show(on.dataset.cat!);
   };
-  return [h('h2', { class: 'label' }, '分類から(名前が出てこないとき)'), tiles, grid, refresh] as const;
+  return [h('h2', { class: 'label' }, '分類から'), tiles, grid, refresh] as const;
 }
 
 export function render(root: HTMLElement, db: Db, cat?: string): void {
   const list = h('div', { class: 'results' });
   const [catLabel, catTiles, catGrid, refreshCats] = categoryBrowser(db, cat);
-  const popularChips = h('div', { class: 'chips' });
-  const renderPopular = () => popularChips.replaceChildren(...popular(db).map((i) => h('a', { href: itemHref(i.id), class: 'chip' }, i.name)));
-  renderPopular();
-  const idle = h('div', { class: 'idle' },
-    h('h2', { class: 'label' }, 'よく探す品'),
-    popularChips,
-    catLabel, catTiles, catGrid,
-    h('h2', { class: 'label' }, '車両の場所から'),
-    h('div', { class: 'vgrid' }, db.vehicles.map((v) => h('a', { href: vehicleHref(v.id), class: `vcard mini v-${v.id}` },
-      silhouette(v.type), h('span', {}, v.name)))));
+  const idle = h('div', { class: 'idle' }, catLabel, catTiles, catGrid);
 
   const update = (q: string) => {
     lastQuery = q;
@@ -102,7 +82,7 @@ export function render(root: HTMLElement, db: Db, cat?: string): void {
     if (q.trim() && !found.length) {
       list.append(h('p', { class: 'empty' }, chosen.size
         ? '選んだ車両には見つかりません。車両のチェックを外すと全車から探します。'
-        : '見つかりません。名前があいまいなら、下の分類や車両の場所から探せます。'));
+        : '見つかりません。名前があいまいなら、分類から探せます。'));
     }
   };
   const input = h('input', {
@@ -120,7 +100,6 @@ export function render(root: HTMLElement, db: Db, cat?: string): void {
           if ((e.target as HTMLInputElement).checked) chosen.add(v.id);
           else chosen.delete(v.id);
           saveChosen();
-          renderPopular();
           refreshCats();
           update(input.value);
         },
