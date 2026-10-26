@@ -11,7 +11,7 @@ test('検索 → 詳細で合計と車両別内訳が見える', async ({ page }
   await page.getByRole('link', { name: /^カラビナ/ }).first().click();
   await expect(page.getByRole('heading', { name: 'カラビナ' })).toBeVisible();
   await expect(page.getByTestId('total')).toHaveText(/\d+/);
-  await expect(page.locator('.bars .vtag', { hasText: 'タンク1' })).toBeVisible();
+  await expect(page.getByTestId('per-vehicle').locator('.vtag', { hasText: 'タンク1' })).toBeVisible();
   await expect(page.getByText('車両左側後部シャッター 下段')).toBeVisible();
   await noHorizontalScroll(page);
   await page.screenshot({ path: 'e2e/screens/item.png', fullPage: true });
@@ -39,4 +39,18 @@ test('車両ページ:場所ごとの積載品一覧', async ({ page }) => {
   await expect(page.getByRole('heading', { name: '信楽ポンプ1' })).toBeVisible();
   await expect(page.getByText('キャビン前部').first()).toBeVisible();
   await noHorizontalScroll(page);
+});
+
+test('詳細:合計は数字+数で書かれていない分の中身、車両ごとは数を並べるだけ(横棒なし)', async ({ page }) => {
+  await page.goto('./');
+  await page.getByRole('searchbox').fill('油粘土');
+  await page.getByTestId('result').first().click();
+  await expect(page.getByTestId('total')).toHaveText('2');
+  await expect(page.getByTestId('total-extra')).toContainText('適量');
+  await expect(page.getByTestId('total-extra')).toContainText('3以上');
+  await expect(page.getByText('内訳参照')).toHaveCount(0);
+  await expect(page.locator('.bar')).toHaveCount(0);
+  await expect(page.getByTestId('per-vehicle')).toContainText('タンク1');
+  await expect(page.getByTestId('per-vehicle')).toContainText('適量');
+  await page.screenshot({ path: 'e2e/screens/item-total.png', fullPage: true });
 });

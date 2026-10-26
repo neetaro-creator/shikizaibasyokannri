@@ -60,9 +60,15 @@ export function totals(db: Db): ItemSummary[] {
 /** 「あり(点検:作動状況)」のような点検由来の注記は「あり」と読む。 */
 const noteLabel = (n: string) => (n.startsWith('あり(') ? 'あり' : n);
 
+/** 数で書かれていない分(適量・一式・3以上など)の注記。重複を除き、出てきた順。 */
+export function uncountedNotes(s: ItemSummary): string[] {
+  return [...new Set(s.breakdown.filter((b) => b.qty === undefined && b.qtyNote).map((b) => noteLabel(b.qtyNote!)))];
+}
+
+/** 一覧用の短い表記:「9」「適量」「一式ほか」「3+適量」「2+適量ほか」。 */
 export function formatTotal(s: ItemSummary): string {
-  const notes = [...new Set(s.breakdown.filter((b) => b.qty === undefined && b.qtyNote).map((b) => noteLabel(b.qtyNote!)))];
+  const notes = uncountedNotes(s);
   if (!notes.length) return String(s.total);
-  if (s.total === 0) return notes.length === 1 ? notes[0] : '内訳参照';
-  return notes.every((n) => n === '適量') ? `${s.total}(ほか適量あり)` : `${s.total}(ほか内訳参照)`;
+  const extra = notes[0] + (notes.length > 1 ? 'ほか' : '');
+  return s.total === 0 ? extra : `${s.total}+${extra}`;
 }

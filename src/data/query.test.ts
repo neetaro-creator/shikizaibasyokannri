@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatTotal, itemsAt, itemsByVehicle, search, summarize, totals } from './query';
+import { formatTotal, itemsAt, itemsByVehicle, search, summarize, totals, uncountedNotes } from './query';
 import { normalize } from './normalize';
 import type { Db } from './types';
 
@@ -85,16 +85,18 @@ describe('formatTotal', () => {
     const only = { ...db, stock: db.stock.filter((s) => !(s.itemId === 'e' && s.qty)) };
     expect(formatTotal(summarize(only, 'e'))).toBe('適量');
   });
-  it('numeric + note → ほか適量あり', () => expect(formatTotal(summarize(db, 'e'))).toBe('3(ほか適量あり)'));
+  it('numeric + 適量 → 3+適量', () => expect(formatTotal(summarize(db, 'e'))).toBe('3+適量'));
 
   const notes = (...ns: (string | number)[]): Db => ({
     ...db,
     stock: ns.map((n, i) => ({ itemId: 'a', locationId: ['t-l', 't-r', 'p-c'][i], ...(typeof n === 'number' ? { qty: n } : { qtyNote: n }) })),
   });
   it('same non-適量 note everywhere → that note', () => expect(formatTotal(summarize(notes('一式', '一式'), 'a'))).toBe('一式'));
-  it('different notes → 内訳参照', () => expect(formatTotal(summarize(notes('一式', '各1'), 'a'))).toBe('内訳参照'));
+  it('different notes only → first note + ほか', () => expect(formatTotal(summarize(notes('一式', '各1'), 'a'))).toBe('一式ほか'));
   it('inspection note → あり', () => expect(formatTotal(summarize(notes('あり(点検:作動状況)'), 'a'))).toBe('あり'));
-  it('numeric + non-適量 note → ほか内訳参照', () => expect(formatTotal(summarize(notes(5, '一式'), 'a'))).toBe('5(ほか内訳参照)'));
+  it('numeric + one other note → 5+一式', () => expect(formatTotal(summarize(notes(5, '一式'), 'a'))).toBe('5+一式'));
+  it('numeric + several notes → 2+適量ほか', () => expect(formatTotal(summarize(notes(2, '適量', '3以上'), 'a'))).toBe('2+適量ほか'));
+  it('uncountedNotes lists the distinct notes in order', () => expect(uncountedNotes(summarize(notes(2, '適量', '3以上'), 'a'))).toEqual(['適量', '3以上']));
 });
 
 describe('listing', () => {

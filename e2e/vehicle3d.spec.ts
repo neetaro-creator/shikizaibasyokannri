@@ -4,6 +4,8 @@ test('資器材の積載場所から3Dへ移ると、その場所が光る', asy
   await page.goto('./');
   await page.getByRole('searchbox').fill('カラビナ');
   await page.getByRole('link', { name: /^カラビナ/ }).first().click();
+  // 詳細ページに切り替わるのを待つ(検索結果のカードにも同じ場所名が出るため)
+  await expect(page.getByRole('heading', { name: 'カラビナ' })).toBeVisible();
   await page.getByRole('link', { name: /車両左側後部シャッター 下段/ }).click();
   const viewer = page.getByTestId('viewer');
   await expect(viewer).toHaveAttribute('data-highlight', /^tank1-l\d+$/);
