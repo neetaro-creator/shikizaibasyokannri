@@ -5,7 +5,6 @@ import { icon } from './ui/icons';
 import { parseHash } from './ui/router';
 import * as searchView from './ui/search-view';
 import * as itemView from './ui/item-view';
-import * as browseView from './ui/browse-view';
 import * as totalsView from './ui/totals-view';
 import { renderVehicles } from './ui/vehicle-list-view';
 import * as vehicleView from './ui/vehicle-view';
@@ -17,7 +16,6 @@ const app = document.querySelector<HTMLElement>('#app')!;
 const main = h('main');
 const tabs = [
   ['search', '#/', '検索', 'search'],
-  ['browse', '#/browse', '探す', 'compass'],
   ['vehicles', '#/vehicle', '車両', 'truck'],
   ['totals', '#/totals', '総数', 'sigma'],
 ] as const;
@@ -39,12 +37,12 @@ function route(): void {
   cleanup?.();
   cleanup = undefined;
   main.replaceChildren();
-  const tab = r.name === 'item' ? '' : r.name === 'vehicle' ? 'vehicles' : r.name;
+  const tab = r.name === 'item' ? '' : r.name === 'vehicle' ? 'vehicles' : r.name === 'browse' ? 'search' : r.name;
   nav.querySelectorAll('a').forEach((a) => a.classList.toggle('on', a.dataset.tab === tab));
   document.body.dataset.route = r.name;
   switch (r.name) {
     case 'item': itemView.render(main, db, r.id!); break;
-    case 'browse': browseView.render(main, db, r.query.get('cat') ?? undefined); break;
+    case 'browse': searchView.render(main, db, r.query.get('cat') ?? undefined); break; // 以前の「探す」画面は検索画面に統合
     case 'totals': totalsView.render(main, db); break;
     case 'vehicles': renderVehicles(main, db); break;
     case 'vehicle': {
@@ -53,7 +51,7 @@ function route(): void {
       else cleanup = vehicleView.render(main, db, v, r.query.get('loc') ?? undefined, r.query.get('align') === '1');
       break;
     }
-    default: searchView.render(main, db);
+    default: searchView.render(main, db, r.query.get('cat') ?? undefined);
   }
   window.scrollTo(0, scrollPos.get(currentKey) ?? 0);
 }

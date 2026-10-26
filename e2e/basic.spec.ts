@@ -17,7 +17,7 @@ test('検索 → 詳細で合計と車両別内訳が見える', async ({ page }
   await page.screenshot({ path: 'e2e/screens/item.png', fullPage: true });
 });
 
-test('探す:分類を選ぶと品が並ぶ', async ({ page }) => {
+test('分類(旧「探す」)を選ぶと品が並ぶ', async ({ page }) => {
   await page.goto('./#/browse');
   await page.getByRole('button', { name: 'ロープ・器具' }).click();
   await expect(page.getByRole('link', { name: /カラビナ/ }).first()).toBeVisible();
@@ -53,4 +53,23 @@ test('詳細:合計は数字+数で書かれていない分の中身、車両ご
   await expect(page.getByTestId('per-vehicle')).toContainText('タンク1');
   await expect(page.getByTestId('per-vehicle')).toContainText('適量');
   await page.screenshot({ path: 'e2e/screens/item-total.png', fullPage: true });
+});
+
+test('検索と探すは一つの画面:タブは3つ、検索画面に分類と車両が並ぶ', async ({ page }) => {
+  await page.goto('./');
+  await expect(page.locator('nav.tabs a')).toHaveText(['検索', '車両', '総数']);
+  await page.getByRole('button', { name: /救助/ }).click();
+  await expect(page).toHaveURL(/cat=/);
+  await expect(page.locator('.grid .card').first()).toBeVisible();
+  await expect(page.getByRole('link', { name: /信楽タンク1/ }).first()).toBeVisible();
+  // 入力すると検索結果に切り替わり、分類の一覧は隠れる
+  await page.getByRole('searchbox').fill('カラビナ');
+  await expect(page.getByTestId('result').first()).toBeVisible();
+  await expect(page.locator('.grid .card')).toHaveCount(0);
+});
+
+test('以前の「探す」のURLは検索画面の分類表示につながる', async ({ page }) => {
+  await page.goto('./#/browse?cat=救助');
+  await expect(page.getByRole('searchbox')).toBeVisible();
+  await expect(page.locator('.grid .card').first()).toBeVisible();
 });
