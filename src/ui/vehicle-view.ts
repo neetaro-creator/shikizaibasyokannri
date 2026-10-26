@@ -19,7 +19,7 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
   const hasInterior = v.type === '救急';
   let mode: 'inside' | 'outside' = hasInterior ? 'inside' : 'outside';
   const toggle = hasInterior
-    ? h('button', { type: 'button', class: 'view-toggle', 'data-testid': 'view-toggle', onclick: () => setMode(mode === 'inside' ? 'outside' : 'inside') })
+    ? h('button', { type: 'button', class: 'view-toggle', 'data-testid': 'view-toggle', onclick: () => setMode(viewMode() === 'inside' ? 'outside' : 'inside') })
     : null;
   const viewer = h('div', { class: 'viewer', 'data-testid': 'viewer' }, ...[canvas,
     h('div', { class: 'hud' }, h('span', { class: 'kicker' }, v.type), h('h1', {}, v.name)), note, toggle].filter((x): x is HTMLElement => x !== null));
@@ -50,7 +50,13 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
   let disposed = false;
   let current: Location | undefined;
   /** 車体の内側にある場所(選ぶと車体を透かし、車体の上からタップでも選べる)。 */
-  const isInside = (l?: Location) => !!l && (l.group === 'キャビン' || l.group === '車内' || (v.type === '救急' && l.group !== '車外保管'));
+  /** 外からだけ開ける収納(救急車の右スライドドアなど)。車内視点でも、選んだら外から見せる。 */
+  const outsideAccess = (l?: Location) => !!l && ((vehicleObject?.userData.outsideAccess as string[] | undefined) ?? []).includes(l.name);
+  const isInside = (l?: Location) => !!l && !outsideAccess(l) && (l.group === 'キャビン' || l.group === '車内' || (v.type === '救急' && l.group !== '車外保管'));
+  /** 今の見せ方。外から開ける収納を選んでいる間は外観。 */
+  const viewMode = () => (outsideAccess(current) ? 'outside' : mode);
+  /** 扉の付いた収納(救急車の A):中の場所を選ぶと開く。 */
+  const doors: THREE.Object3D[] = [];
   // 場所ボタンと同じ並び(左右スワイプ・‹ › で送る順番)
   const ordered = groups.flatMap((g) => locs.filter((l) => l.group === g));
   const step = (d: number) => {
@@ -76,6 +82,7 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
 
   /** 車内視点:殻(床・壁・天井)を出して外観を隠し、その場で見回すカメラにする。 */
   function applyMode() {
+    const mode = viewMode();
     viewer.dataset.view = mode;
     if (toggle) toggle.textContent = mode === 'inside' ? '外観を見る' : '車内を見る';
     note.textContent = mode === 'inside' ? 'ドラッグで見回す ・ 収納をタップで中身' : 'ドラッグで回転 ・ ピンチで拡大 ・ 箱をタップで中身';
@@ -96,6 +103,7 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
 
   function setMode(m: 'inside' | 'outside') {
     mode = m;
+    if (m === 'inside' && outsideAccess(current)) current = undefined; // 外から開ける収納のまま車内へは戻れない
     applyMode();
     if (current) select(current.id);
     else overview(false);
@@ -105,7 +113,7 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
   function overview(instant: boolean) {
     if (!three) return;
     let pos: THREE.Vector3, target: THREE.Vector3;
-    if (mode === 'inside') {
+    if (viewMode() === 'inside') {
       pos = new THREE.Vector3(-2.15, 1.5, 0.05);
       target = pos.clone().add(new THREE.Vector3(0.05, -0.008, 0));
     } else {
@@ -123,21 +131,28 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
   }
 
   /** 車内視点で、その場所の向かいに立ってそちらを向く。 */
-  function lookFromInside(center: THREE.Vector3) {
+  function lookFromInside(center: THREE.Vector3, name: string) {
     const clamp = (x: number, a: number, b: number) => Math.min(b, Math.max(a, x));
+    const fixed = (vehicleObject?.userData.eyes as Record<string, [number, number, number]> | undefined)?.[name];
     let eye: THREE.Vector3;
-    if (center.x > 0.9 && Math.abs(center.z) < 0.86) eye = new THREE.Vector3(center.x - 1.2, 1.45, center.z * 0.5); // 前の仕切り・キャブ
+    if (fixed) eye = new THREE.Vector3(...fixed);
+    else if (center.x > 0.9 && Math.abs(center.z) < 0.86) eye = new THREE.Vector3(center.x - 1.2, 1.45, center.z * 0.5); // 前の仕切り・キャブ
     else if (center.z > 0.5) eye = new THREE.Vector3(center.x, 1.45, center.z - 1.15); // 右壁
     else if (center.z < -0.5) eye = new THREE.Vector3(center.x, 1.45, center.z + 1.15); // 左壁
     else eye = new THREE.Vector3(center.x - 1.2, 1.6, 0); // 天井・中央は後ろから
-    eye.set(clamp(eye.x, -2.2, 0.75), eye.y, clamp(eye.z, -0.45, 0.45));
+    if (!fixed) eye.set(clamp(eye.x, -2.2, 0.75), eye.y, clamp(eye.z, -0.45, 0.45));
     three!.flyTo(eye, eye.clone().add(center.clone().sub(eye).normalize().multiplyScalar(0.05)));
   }
 
   function select(id?: string) {
     const loc = locs.find((l) => l.id === id);
+    const before = viewMode();
     current = loc;
-    setXray(mode === 'outside' && isInside(loc));
+    if (viewMode() !== before) {
+      applyMode();
+      if (!loc) overview(false);
+    }
+    setXray(viewMode() === 'outside' && isInside(loc));
     history.replaceState(null, '', vehicleHref(v.id, loc?.id) + (align ? `${loc ? '&' : '?'}align=1` : ''));
     panel?.show(loc);
     root.querySelectorAll<HTMLButtonElement>('[data-loc]').forEach((b) => b.classList.toggle('on', b.dataset.loc === loc?.id));
@@ -167,7 +182,7 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
     sheet.hidden = false;
     pane.scrollTop = 0;
     const center = hotspots?.centerOf(loc.id);
-    if (three && center && mode === 'inside') lookFromInside(center);
+    if (three && center && viewMode() === 'inside') lookFromInside(center, loc.name);
     else if (three && center) {
       // 箱の面の向き(側面なら横、後部なら後ろ)から斜め上に引いて見る
       // キャブ内は透かして斜め上から、それ以外は箱の面の向きから
@@ -193,14 +208,21 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
     applyMode();
     hotspots = createHotspots(locs);
     s.scene.add(hotspots.group);
-    s.onFrame((t) => hotspots!.update(t));
+    s.onFrame((t) => {
+      hotspots!.update(t);
+      for (const d of doors) {
+        const target = (d.userData.opensFor as string[]).includes(current?.name ?? '') ? (d.userData.openAngle as number) : 0;
+        d.rotation.y += (target - d.rotation.y) * 0.15;
+      }
+    });
     loadVehicle(v).then(({ object, fallback }) => {
       // 読み込み中に画面を離れたら捨てる
       if (disposed) return disposeObject(object);
       vehicleObject = object;
       s.scene.add(object);
+      object.traverse((o) => { if (o.userData.opensFor) doors.push(o); });
       applyMode();
-      setXray(mode === 'outside' && isInside(current));
+      setXray(viewMode() === 'outside' && isInside(current));
       // 車両の大きさに合わせて初期カメラを引く(場所を指定して開いたときはその場所へ寄る)
       if (!focus) overview(true);
       if (fallback) note.textContent = '3Dモデルを読み込めなかったため、簡易モデルで表示しています。';
@@ -214,9 +236,9 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
       const r = canvas.getBoundingClientRect();
       const ndc = new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
       const isCab = (id: string) => isInside(locs.find((l) => l.id === id));
-      const occluders = vehicleObject && mode === 'outside' ? [vehicleObject] : [];
+      const occluders = vehicleObject && viewMode() === 'outside' ? [vehicleObject] : [];
       let id = hotspots!.pick(ndc, s.camera, occluders, isCab);
-      if (!id && vehicleObject && mode === 'inside') {
+      if (!id && vehicleObject && viewMode() === 'inside') {
         // 車内視点:押した壁や機器に一番近い収納
         const ray = new THREE.Raycaster();
         ray.setFromCamera(ndc, s.camera);
@@ -251,7 +273,7 @@ export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, al
           const p = c.project(s.camera);
           if (Math.abs(p.x) > 0.9 || Math.abs(p.y) > 0.9) return [];
           if (p.z > 1) return []; // カメラの後ろ
-          if (hotspots!.pick(new THREE.Vector2(p.x, p.y), s.camera, vehicleObject && mode === 'outside' ? [vehicleObject] : []) !== l.id) return [];
+          if (hotspots!.pick(new THREE.Vector2(p.x, p.y), s.camera, vehicleObject && viewMode() === 'outside' ? [vehicleObject] : []) !== l.id) return [];
           return [{ id: l.id, x: r.left + ((p.x + 1) / 2) * r.width, y: r.top + ((1 - p.y) / 2) * r.height }];
         });
       },

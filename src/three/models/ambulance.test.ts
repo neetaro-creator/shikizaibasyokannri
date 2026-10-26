@@ -53,4 +53,12 @@ describe('信楽救急1(日産パラメディック)の 3D', () => {
     expect(ambulanceHotspot('左スライドドア収納')!.z).toBeLessThan(-0.8);
     expect(ambulanceHotspot('患者室右側')!.z).toBeGreaterThan(0.5);
   });
+
+  it('A の扉は中の場所を選んだときに開く(扉の表では閉じたまま)、右スライドドアは外から開ける', () => {
+    const g = buildAmbulance();
+    const door = g.getObjectByName('door-A')!;
+    expect(door.userData.opensFor).toContain('A収納 黒かばん');
+    expect(door.userData.opensFor).not.toContain('A収納扉(表)');
+    expect(g.userData.outsideAccess).toEqual(['右スライドドア収納']);
+  });
 });

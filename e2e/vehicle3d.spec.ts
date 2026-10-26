@@ -87,3 +87,17 @@ test('救急車の車内視点で、見えている収納をタップすると�
   await expect(viewer).toHaveAttribute('data-highlight', target.id);
   await expect(page.getByTestId('sheet')).toBeVisible();
 });
+
+test('救急車の右スライドドア収納(外から開ける)は、車内視点でも外観から見せ、車内の場所に移ると車内へ戻る', async ({ page }) => {
+  await page.goto('./#/vehicle/ambulance1');
+  const viewer = page.getByTestId('viewer');
+  await expect(viewer).toHaveAttribute('data-ready', 'true');
+  await expect(viewer).toHaveAttribute('data-view', 'inside');
+  await page.getByRole('button', { name: '右スライドドア収納' }).click();
+  await expect(viewer).toHaveAttribute('data-view', 'outside');
+  await expect(viewer).not.toHaveAttribute('data-xray', 'true');
+  await page.getByRole('button', { name: '場所の一覧へ' }).click();
+  await expect(viewer).toHaveAttribute('data-view', 'inside');
+  await page.getByRole('button', { name: 'A収納 黒かばん' }).click();
+  await expect(viewer).toHaveAttribute('data-view', 'inside');
+});
