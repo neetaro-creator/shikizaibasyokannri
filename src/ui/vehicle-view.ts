@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { itemsAt } from '../data/query';
+import { isOutside, itemsAt } from '../data/query';
 import type { Db, Location, Vehicle } from '../data/types';
 import { createHotspots } from '../three/hotspots';
 import { loadVehicle } from '../three/load-vehicle';
@@ -12,7 +12,7 @@ import { icon } from './icons';
 
 /** 車両 3D と場所一覧。戻り値は後片付け。 */
 export function render(root: HTMLElement, db: Db, v: Vehicle, focus?: string, align = false): () => void {
-  const locs = resolveHotspots(db.locations.filter((l) => l.vehicleId === v.id), v.type);
+  const locs = resolveHotspots(db.locations.filter((l) => l.vehicleId === v.id && !isOutside(l)), v.type); // 車外品は「車外」の画面に分ける
   const canvas = h('canvas', { 'aria-label': `${v.name}の3D表示` }) as HTMLCanvasElement;
   const note = h('p', { class: 'hud-note' }, 'ドラッグで回転 ・ ピンチで拡大 ・ 箱をタップで中身');
   // 救急車は車内に立って見回すのが標準。外観にも切り替えられる

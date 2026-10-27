@@ -7,6 +7,7 @@ import * as searchView from './ui/search-view';
 import * as itemView from './ui/item-view';
 import * as totalsView from './ui/totals-view';
 import { renderVehicles } from './ui/vehicle-list-view';
+import * as outsideView from './ui/outside-view';
 import * as vehicleView from './ui/vehicle-view';
 import '@fontsource/jetbrains-mono/700.css';
 import './ui/style.css';
@@ -37,7 +38,7 @@ function route(): void {
   cleanup?.();
   cleanup = undefined;
   main.replaceChildren();
-  const tab = r.name === 'item' ? '' : r.name === 'vehicle' ? 'vehicles' : r.name === 'browse' ? 'search' : r.name;
+  const tab = r.name === 'item' ? '' : r.name === 'vehicle' || r.name === 'outside' ? 'vehicles' : r.name === 'browse' ? 'search' : r.name;
   nav.querySelectorAll('a').forEach((a) => a.classList.toggle('on', a.dataset.tab === tab));
   document.body.dataset.route = r.name;
   switch (r.name) {
@@ -45,6 +46,7 @@ function route(): void {
     case 'browse': searchView.render(main, db, r.query.get('cat') ?? undefined, r.query.get('sub') ?? undefined); break; // 以前の「探す」画面は検索画面に統合
     case 'totals': totalsView.render(main, db); break;
     case 'vehicles': renderVehicles(main, db); break;
+    case 'outside': outsideView.render(main, db, r.query.get('loc') ?? undefined); break;
     case 'vehicle': {
       const v = db.vehicles.find((x) => x.id === r.id);
       if (!v) main.append(h('p', { class: 'empty' }, 'この車両は見つかりません。'));

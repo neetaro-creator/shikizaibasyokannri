@@ -1,4 +1,4 @@
-export interface Route { name: 'search' | 'item' | 'browse' | 'vehicles' | 'vehicle' | 'totals'; id?: string; query: URLSearchParams }
+export interface Route { name: 'search' | 'item' | 'browse' | 'vehicles' | 'vehicle' | 'totals' | 'outside'; id?: string; query: URLSearchParams }
 
 export function parseHash(hash: string): Route {
   const [path, qs] = hash.replace(/^#/, '').split('?');
@@ -14,6 +14,7 @@ export function parseHash(hash: string): Route {
     case 'browse': return { name: 'browse', query };
     case 'vehicle': return parts[1] ? { name: 'vehicle', id: parts[1], query } : { name: 'vehicles', query };
     case 'totals': return { name: 'totals', query };
+    case 'outside': return { name: 'outside', query };
     default: return { name: 'search', query };
   }
 }

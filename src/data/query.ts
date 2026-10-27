@@ -5,11 +5,23 @@ export interface Breakdown { vehicle: Vehicle; location: Location; qty?: number;
 export interface ItemSummary { item: Item; total: number; hasUncounted: boolean; breakdown: Breakdown[] }
 export interface Content { item: Item; qty?: number; qtyNote?: string }
 
-/** vehicles を渡すと、その車両に積んでいる品だけ(空・未指定なら全車)。 */
-export function search(db: Db, q: string, vehicles?: Set<string>): Item[] {
+/** 車外品:車両に積まず、車庫・書庫・資器材庫などに置いている品の場所。点検表の上ではどれかの車両に属する。 */
+export const isOutside = (l: Location) => l.group === '車外保管';
+
+/** どの場所を数えるか。vehicle=車載だけ(既定)、outside=車外だけ、both=両方。 */
+export type Where = 'vehicle' | 'outside' | 'both';
+const inWhere = (l: Location, where: Where) => where === 'both' || (where === 'outside') === isOutside(l);
+
+/** vehicles を渡すと、その車両(の点検表)の品だけ(空・未指定なら全車)。車外品は withOutside のときだけ含める。 */
+export function search(db: Db, q: string, vehicles?: Set<string>, withOutside = false): Item[] {
   const nq = normalize(q);
   if (!nq) return [];
-  const onVehicles = (itemId: string) => !vehicles?.size || db.stock.some((s) => s.itemId === itemId && vehicles.has(db.locations.find((l) => l.id === s.locationId)!.vehicleId));
+  const where: Where = withOutside ? 'both' : 'vehicle';
+  const onVehicles = (itemId: string) => db.stock.some((s) => {
+    if (s.itemId !== itemId) return false;
+    const l = db.locations.find((x) => x.id === s.locationId)!;
+    return inWhere(l, where) && (!vehicles?.size || vehicles.has(l.vehicleId));
+  });
   const rank = (item: Item) => {
     const keys = [item.name, ...item.aliases].map(normalize);
     if (keys.some((k) => k.startsWith(nq))) return 0;
@@ -23,8 +35,8 @@ export function search(db: Db, q: string, vehicles?: Set<string>): Item[] {
     .map((x) => x.item);
 }
 
-/** vehicles を渡すと、その車両の場所だけで集計する(空・未指定なら全車)。 */
-export function summarize(db: Db, itemId: string, vehicles?: Set<string>): ItemSummary {
+/** vehicles を渡すと、その車両の場所だけで集計する(空・未指定なら全車)。where で車外品を入れるか決める(既定は車載だけ)。 */
+export function summarize(db: Db, itemId: string, vehicles?: Set<string>, where: Where = 'vehicle'): ItemSummary {
   const item = db.items.find((i) => i.id === itemId);
   if (!item) throw new Error(`unknown item ${itemId}`);
   const vOrder = db.vehicles.map((v) => v.id);
@@ -35,7 +47,7 @@ export function summarize(db: Db, itemId: string, vehicles?: Set<string>): ItemS
       const vehicle = db.vehicles.find((v) => v.id === location.vehicleId)!;
       return { vehicle, location, qty: s.qty, qtyNote: s.qtyNote };
     })
-    .filter((b) => !vehicles?.size || vehicles.has(b.vehicle.id))
+    .filter((b) => inWhere(b.location, where) && (!vehicles?.size || vehicles.has(b.vehicle.id)))
     .sort((a, b) => vOrder.indexOf(a.vehicle.id) - vOrder.indexOf(b.vehicle.id));
   return {
     item,

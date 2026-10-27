@@ -1,8 +1,8 @@
-import { categoriesIn, formatTotal, majors, majorsOf, search, summarize } from '../data/query';
+import { categoriesIn, formatTotal, isOutside, majors, majorsOf, search, summarize, type Where } from '../data/query';
 import type { Db, Item } from '../data/types';
 import { h, itemHref } from './dom';
 import { icon } from './icons';
-import { shortName, vehicleTag } from './vehicle-tag';
+import { outsideTag, shortName, vehicleTag } from './vehicle-tag';
 
 let lastQuery = '';
 /** 検索する車両(空なら全車)。この端末に覚えておく。 */
@@ -21,8 +21,11 @@ const saveChosen = () => {
     /* 保存できなくても動く */
   }
 };
-/** 選んだ車両に積んでいる品か(未選択なら全部)。 */
-const onChosen = (db: Db, itemId: string) => !chosen.size || summarize(db, itemId, chosen).breakdown.length > 0;
+/** 車外品(車庫・書庫など)も探すか。端末には覚えず、アプリを開き直すと外れる。 */
+let withOutside = false;
+const where = (): Where => (withOutside ? 'both' : 'vehicle');
+/** 選んだ車両(未選択なら全車)に積んでいる品か。車外品は withOutside のときだけ数える。 */
+const onChosen = (db: Db, itemId: string) => summarize(db, itemId, chosen, where()).breakdown.length > 0;
 
 /** 大分類のタイルと、選んだ大分類の中分類チップ・品カード(名前が出てこないとき用)。
  *  中分類は大分類をまたぐことがあり(例:破壊器具は救助にも火災にも出る)、同じ品がいくつもの大分類に出る。 */
@@ -80,16 +83,16 @@ export function render(root: HTMLElement, db: Db, cat?: string, sub?: string): v
       catGrid.replaceChildren();
       catTiles.querySelectorAll('button').forEach((b) => b.classList.remove('on'));
     }
-    const found = search(db, q, chosen).slice(0, 60);
+    const found = search(db, q, chosen, withOutside).slice(0, 60);
     list.replaceChildren(...found.map((item) => {
-      const s = summarize(db, item.id, chosen);
+      const s = summarize(db, item.id, chosen, where());
       const shown = s.breakdown.slice(0, 3);
       return h('a', { href: itemHref(item.id), class: 'result', 'data-testid': 'result' },
         h('div', { class: 'result-head' },
           h('strong', {}, item.name),
           h('span', { class: 'num' }, formatTotal(s))),
         h('ul', { class: 'mini-loc' }, shown.map((b) => h('li', {},
-          vehicleTag(b.vehicle),
+          isOutside(b.location) ? outsideTag() : vehicleTag(b.vehicle),
           h('span', { class: 'loc-name' }, b.location.name),
           h('span', { class: 'num' }, b.qty !== undefined ? String(b.qty) : b.qtyNote ?? '')))),
         s.breakdown.length > shown.length ? h('p', { class: 'more' }, `ほか ${s.breakdown.length - shown.length} か所`) : null);
@@ -97,7 +100,7 @@ export function render(root: HTMLElement, db: Db, cat?: string, sub?: string): v
     if (q.trim() && !found.length) {
       list.append(h('p', { class: 'empty' }, chosen.size
         ? '選んだ車両には見つかりません。車両のチェックを外すと全車から探します。'
-        : '見つかりません。名前があいまいなら、分類から探せます。'));
+        : withOutside ? '見つかりません。名前があいまいなら、分類から探せます。' : '車両には見つかりません。車庫・書庫なども探すなら「車外品」にチェックを入れてください。'));
     }
   };
   const input = h('input', {
@@ -121,7 +124,19 @@ export function render(root: HTMLElement, db: Db, cat?: string, sub?: string): v
       }) as HTMLInputElement;
       box.checked = chosen.has(v.id);
       return h('label', { class: `vcheck v-${v.id}` }, box, h('span', {}, shortName(v)));
-    }));
+    }),
+    // 車外品(車庫・書庫など)は普段は出さない。現場で探すときだけチェックして加える
+    h('label', { class: 'vcheck v-outside' },
+      h('input', {
+        type: 'checkbox', 'aria-label': '車外品(車庫・書庫など)も探す',
+        onchange: (e) => {
+          withOutside = (e.target as HTMLInputElement).checked;
+          refreshCats();
+          update(input.value);
+        },
+        ...(withOutside && { checked: true }),
+      }),
+      h('span', {}, '車外品')));
   root.append(
     h('section', { class: 'hero' },
       h('p', { class: 'kicker' }, `${db.vehicles.length}台 ・ ${db.items.length}品目`),

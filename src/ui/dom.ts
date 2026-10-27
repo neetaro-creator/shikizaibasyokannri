@@ -14,5 +14,6 @@ export function h(tag: string, attrs: Attrs = {}, ...children: (Child | Child[])
 }
 
 export const itemHref = (id: string) => `#/item/${encodeURIComponent(id)}`;
+export const outsideHref = (loc?: string) => `#/outside${loc ? `?loc=${encodeURIComponent(loc)}` : ''}`;
 export const vehicleHref = (id: string, loc?: string) =>
   `#/vehicle/${id}${loc ? `?loc=${encodeURIComponent(loc)}` : ''}`;

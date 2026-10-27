@@ -135,3 +135,25 @@ describe('大分類と中分類', () => {
     expect(majorsOf(db, db.items[0])).toEqual(['救助', '火災']);
   });
 });
+
+describe('車外品(車庫・書庫などに置く品)', () => {
+  const withGarage: Db = {
+    ...db,
+    locations: [...db.locations,
+      { id: 't-g', vehicleId: 'tank1', name: '車庫', group: '車外保管' },
+      { id: 'p-g', vehicleId: 'pump1', name: '資器材庫', group: '車外保管' }],
+    items: [...db.items, { id: 'f', name: '予備カラビナ', aliases: [], category: 'ロープ・器具' }],
+    stock: [...db.stock, { itemId: 'a', locationId: 't-g', qty: 10 }, { itemId: 'f', locationId: 'p-g', qty: 2 }],
+  };
+  it('既定では検索にも合計にも入らない', () => {
+    expect(search(withGarage, 'カラビナ').map((i) => i.id)).toEqual(['a', 'b']);
+    expect(summarize(withGarage, 'a').total).toBe(9);
+    expect(totals(withGarage).find((s) => s.item.id === 'f')!.total).toBe(0);
+  });
+  it('車外品を含めると出る。車両を選んでいればその車両の点検表の車外だけ', () => {
+    expect(search(withGarage, 'カラビナ', undefined, true).map((i) => i.id)).toEqual(['a', 'b', 'f']);
+    expect(search(withGarage, 'カラビナ', new Set(['tank1']), true).map((i) => i.id)).toEqual(['a', 'b']);
+    expect(summarize(withGarage, 'a', undefined, 'both').total).toBe(19);
+    expect(summarize(withGarage, 'a', undefined, 'outside').breakdown.map((b) => b.location.id)).toEqual(['t-g']);
+  });
+});

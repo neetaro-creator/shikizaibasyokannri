@@ -22,6 +22,7 @@
   --v-pump1: #ff9f1c;
   --v-command1: #5ac8fa;
   --v-ambulance1: #7ee081;
+  --v-outside: #b9a3ff;
   --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   color-scheme: dark;
 }
@@ -49,6 +50,7 @@
     --v-pump1: #8f4c00;
     --v-command1: #075d92;
     --v-ambulance1: #1f6e28;
+    --v-outside: #5b3fb8;
     color-scheme: light;
   }
 }
@@ -150,6 +152,9 @@ main { max-width: 760px; margin: 0 auto; padding: 16px 16px 24px; }
 .v-pump1 { --c: var(--v-pump1); }
 .v-command1 { --c: var(--v-command1); }
 .v-ambulance1 { --c: var(--v-ambulance1); }
+.v-outside { --c: var(--v-outside); }
+.vcard.v-outside .ph-icon { width: 108px; display: grid; place-items: center; color: var(--c); }
+.outside-loc.on { outline: 2px solid var(--hl); outline-offset: 4px; border-radius: 12px; }
 
 /* ── チップ・タイル ── */
 .vfilter { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0 0; padding: 0; border: 0; }

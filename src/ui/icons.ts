@@ -3,6 +3,7 @@ const PATHS: Record<string, string> = {
   search: '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>',
   compass: '<circle cx="12" cy="12" r="8.5"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>',
   truck: '<path d="M2.5 16.5V8h11v8.5M13.5 10.5h4l3 3v3h-7.5"/><circle cx="6.5" cy="17.5" r="1.8"/><circle cx="16.5" cy="17.5" r="1.8"/>',
+  box: '<path d="M3.5 8L12 3.5 20.5 8v9L12 21.5 3.5 17z"/><path d="M3.5 8L12 12.5 20.5 8M12 12.5v9"/>',
   sigma: '<path d="M17.5 5h-11l6 7-6 7h11"/>',
   back: '<path d="M14.5 5.5L8 12l6.5 6.5"/>',
   close: '<path d="M6 6l12 12M18 6L6 18"/>',

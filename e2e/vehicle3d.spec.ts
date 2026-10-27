@@ -29,13 +29,15 @@ test('3D上の場所をタップすると積載品一覧が出る', async ({ pag
   await expect(page.getByTestId('sheet')).toBeVisible();
 });
 
-test('3Dに置かない場所(車外保管)を選んでも一覧で示される', async ({ page }) => {
+test('車外品(車庫など)は車両の画面には出ず、車両タブの「車外」に場所ごとに並ぶ', async ({ page }) => {
   await page.goto('./#/vehicle/command1');
   await expect(page.getByTestId('viewer')).toHaveAttribute('data-ready', 'true');
-  await page.getByRole('button', { name: '車庫西側' }).click();
-  await expect(page.getByTestId('sheet')).toContainText('車庫西側');
-  await expect(page.getByTestId('sheet')).toContainText('3D上には表示されません');
-  await expect(page.getByTestId('viewer')).not.toHaveAttribute('data-highlight', /.+/);
+  await expect(page.getByRole('button', { name: '車庫西側' })).toHaveCount(0);
+  await page.goto('./#/vehicle');
+  await page.getByRole('link', { name: /車外/ }).click();
+  await expect(page.getByRole('heading', { name: /車庫西側/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /救急資器材庫/ })).toContainText('救急1の点検表');
+  await expect(page.locator('nav.tabs a.on')).toHaveText('車両');
 });
 
 test('キャブ内の場所を選ぶと車体が透けて中が見え、外の場所では元に戻る', async ({ page }) => {

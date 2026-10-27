@@ -55,7 +55,7 @@ test('詳細:合計は数字+数で書かれていない分の中身、車両ご
   await page.getByTestId('result').first().click();
   await expect(page.getByTestId('total')).toHaveText('2');
   await expect(page.getByTestId('total-extra')).toContainText('適量');
-  await expect(page.getByTestId('total-extra')).toContainText('3以上');
+  await expect(page.getByTestId('outside-total')).toContainText('3以上'); // 車庫の「3以上」は車外なので合計の外
   await expect(page.getByText('内訳参照')).toHaveCount(0);
   await expect(page.locator('.bar')).toHaveCount(0);
   await expect(page.getByTestId('per-vehicle')).toContainText('タンク1');
@@ -99,4 +99,32 @@ test('車両をチェックすると、その車両に積んでいる品と場�
   await page.getByRole('checkbox', { name: '信楽救急1' }).uncheck();
   await page.getByRole('searchbox').fill('カラビナ');
   await expect(results.first()).toBeVisible();
+});
+
+test('車外品は普段は検索・合計に入らず、「車外品」にチェックすると加わる', async ({ page }) => {
+  await page.goto('./');
+  const outside = page.getByRole('checkbox', { name: '車外品(車庫・書庫など)も探す' });
+  await expect(outside).not.toBeChecked();
+  await page.getByRole('searchbox').fill('フォグガン'); // 車庫にだけある品
+  await expect(page.getByTestId('result')).toHaveCount(0);
+  await expect(page.getByText('「車外品」にチェック')).toBeVisible();
+  await outside.check();
+  await expect(page.getByTestId('result').first()).toContainText('車外');
+  // 車両を選ぶと、その車両の点検表の車外だけ
+  await page.getByRole('checkbox', { name: '信楽救急1' }).check();
+  await expect(page.getByTestId('result')).toHaveCount(0);
+  await page.getByRole('checkbox', { name: '信楽救急1' }).uncheck();
+  // 開き直すと外れている
+  await page.reload();
+  await expect(page.getByRole('checkbox', { name: '車外品(車庫・書庫など)も探す' })).not.toBeChecked();
+});
+
+test('品の画面:車外の分は全車合計に入れず、別枠に「車外 ○」と出す', async ({ page }) => {
+  await page.goto('./');
+  await page.getByRole('searchbox').fill('かけや');
+  await page.getByTestId('result').first().click();
+  await expect(page.getByTestId('outside')).toBeVisible();
+  await expect(page.getByTestId('outside-total')).toContainText('車外');
+  await page.getByTestId('outside').getByRole('link').first().click();
+  await expect(page).toHaveURL(/#\/outside\?loc=/);
 });

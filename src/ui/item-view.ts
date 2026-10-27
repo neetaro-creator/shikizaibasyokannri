@@ -1,15 +1,16 @@
-import { majorsOf, summarize, uncountedNotes } from '../data/query';
+import { formatTotal, majorsOf, summarize, uncountedNotes } from '../data/query';
 import type { Db } from '../data/types';
-import { h, vehicleHref } from './dom';
+import { h, outsideHref, vehicleHref } from './dom';
 import { icon } from './icons';
-import { vehicleTag } from './vehicle-tag';
+import { shortName, vehicleTag } from './vehicle-tag';
 
 export function render(root: HTMLElement, db: Db, id: string): void {
   if (!db.items.some((i) => i.id === id)) {
     root.append(h('p', { class: 'empty' }, 'この資器材は見つかりません。'));
     return;
   }
-  const s = summarize(db, id);
+  const s = summarize(db, id); // 車載だけ。車外品は合計に入れず、下に別に出す
+  const out = summarize(db, id, undefined, 'outside');
   const base = import.meta.env.BASE_URL;
   // 車両ごとの数(数字の合計と、数で書かれていない注記を並べる)
   const perVehicle = db.vehicles.map((v) => {
@@ -37,7 +38,15 @@ export function render(root: HTMLElement, db: Db, id: string): void {
       h('span', { class: 'grow' }, h('span', { class: 'loc-name' }, b.location.name), vehicleTag(b.vehicle)),
       h('span', { class: 'num' }, b.qty !== undefined ? `${b.qty}${b.qtyNote ? ` ${b.qtyNote}` : ''}` : b.qtyNote ?? ''),
       icon('chevron', 18))))),
-    h('p', { class: 'muted' }, '場所を押すと、3Dで積載場所が光ります。'),
+    s.breakdown.length ? h('p', { class: 'muted' }, '場所を押すと、3Dで積載場所が光ります。') : null,
+    out.breakdown.length ? h('section', { class: 'panel outside', 'data-testid': 'outside' },
+      h('span', { class: 'label' }, '車外(車庫・書庫など) ・ 合計には入れていません'),
+      h('div', { class: 'total-line' }, h('strong', { class: 'num', 'data-testid': 'outside-total' }, `車外 ${formatTotal(out)}`)),
+      h('ul', { class: 'loclist' }, out.breakdown.map((b) => h('li', {}, h('a', { href: outsideHref(b.location.id), class: 'locrow' },
+        icon('box', 20),
+        h('span', { class: 'grow' }, h('span', { class: 'loc-name' }, b.location.name), h('small', { class: 'muted' }, `(${shortName(b.vehicle)}の点検表)`)),
+        h('span', { class: 'num' }, b.qty !== undefined ? `${b.qty}${b.qtyNote ? ` ${b.qtyNote}` : ''}` : b.qtyNote ?? ''),
+        icon('chevron', 18)))))) : null,
   ];
   root.append(...parts.filter((x): x is HTMLElement => x !== null));
 }
